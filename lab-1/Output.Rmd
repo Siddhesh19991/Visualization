@@ -3,7 +3,6 @@ title: "Visualization lab-1"
 output: html_document
 author: Siddhesh Sreedar (sidsr770) and Nazli Bilgic (nazbi056)
 date: "2024-08-31"
-runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
