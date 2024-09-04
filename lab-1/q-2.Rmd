@@ -1,26 +1,42 @@
 ---
-title: "Untitled"
+title: "Visualization lab-1"
 output: html_document
+author: Siddhesh Sreedar (sidsr770) and Nazli Bilgic (nazbi056)
 date: "2024-08-31"
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+	fig.align = "center",
+	fig.height = 3,
+	fig.width = 5,
+	message = FALSE,
+	warning = FALSE
+)
+set.seed(12345)
 ```
+
+
+##### Question-1
+```{r, fig.align="center", fig.cap=c("Caption"), out.height = "460px", out.width='800px', echo=FALSE}
+knitr::include_graphics("image-1.pdf")
+```
+
 
 ##### Question-2
 
-# 1)
-```{r}
+```{r echo=FALSE}
+##### Question-2
+#1)
 setwd("~/Downloads/M A S T E R S /Sem-3/Part-1/Visualization/labs/lab-1")
 
 data = read.table("SENIC.txt",header = FALSE)
 
 ```
 
-# 2)
-```{r}
-
+```{r echo=FALSE}
+#2)
 outlier <- function(variable){
   
   quants <- quantile(variable)
@@ -42,7 +58,10 @@ outlier <- function(variable){
 ```
 
 # 3)
-```{r}
+Use ggplot2 and the function from step 2 to create a density plot of Infection risk in which
+outliers are plotted as a diamond symbol ( ◊ ) . Make some analysis of this graph.
+```{r echo=FALSE}
+#3)
 library(ggplot2)
 
 ind <- outlier(data$V4)
@@ -55,7 +74,12 @@ viz
 We can see from the above graph, it resembles the shape of a normal distribution which majority of the observations around 4.5.There are only a few outliers i.e 5 outliers to be exact.  
 
 # 4) 
-```{r}
+Produce graphs of the same kind as in step 3 but for all other quantitative variables in the
+data (to iterate over several column names, you can use .data pronoun, i.e.
+aes(x=.data[variable_that_contains_column_name_as_string], …) ). Put these graphs into
+one (hint: arrangeGrob() in gridExtra package can be used) and make some analysis.
+```{r echo=FALSE}
+#4)
 library(gridExtra)
 
 col_names <- c("V2","V3","V5","V6","V7","V10","V11","V12")
@@ -88,7 +112,12 @@ grid.arrange(plots)
 We notice outliers for all the variables except for the variable "Available Facilities & Services"(V12). We also see skewness in some variables like "Number of Beds" (V7), "Average Daily Census"(V10) and "Number of Nurses"(V11).
 
 # 5) 
-```{r}
+Create a ggplot2 scatter plot showing the dependence of Infection risk on the Number of
+Nurses where the points are colored by Number of Beds. Is there any interesting information
+in this plot that was not visible in the plots in step 4? What do you think is a possible danger
+of having such a color scale?
+```{r echo=FALSE}
+#5)
 ggplot(data,aes(V4,V11,color = factor(V7))) + geom_point() + labs( x = "Infection risk", y = "Number of Nurses")
 ```
 
@@ -98,7 +127,11 @@ With regards to the color scale, having such a large color scale can be overwhel
 
 
 # 6) 
-```{r}
+Convert graph from step 3 to Plotly with ggplotly function. What important new
+functionality have you obtained compared to the graph from step 3? Make some additional
+analysis of the new graph.
+```{r echo=FALSE}
+#6)
 library(plotly)
 
 ggplotly(viz)
@@ -109,8 +142,12 @@ Upon using plotly, we are able to hover over the graph and actually get the corr
 
 
 # 7) 
-```{r}
-
+Use data plot-pipeline and the pipeline operator to make a histogram of Infection risk in
+which outliers are plotted as a diamond symbol ( ◊ ) . Make this plot in the Plotly directly (i.e.
+without using ggplot2 functionality). Hint: select(), filter() and is.element() functions might be
+useful here.
+```{r echo=FALSE}
+#7)
 ind <- outlier(data$V4)
 values <- data$V4[ind]
 
@@ -131,7 +168,14 @@ data %>% plot_ly(x= ~V4, type = "histogram") %>% select(V4) %>% filter(V4 > uppe
 
 
 # 8) 
-```{r}
+Write a Shiny app that produces the same kind of plot as in step 4 but in addition include:
+a. Checkboxes indicating for which variables density plots should be produced
+b. A slider changing the bandwidth parameter in the density estimation (‘bw’
+parameter)
+Comment how the graphs change with varying bandwidth. Is there any bandwidth that is
+optimal for all of graphs?
+```{r echo=FALSE}
+#8)
 library(shiny)
 
 
@@ -186,3 +230,9 @@ shinyApp(ui = ui, server = server)
 ```
 
 The default bandwidth value that was provided is 1. And from the graphs, we can see that as we increase this value , the smoother the graphs becomes. 
+
+\pagebreak
+# Appendix
+### Code
+```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```
