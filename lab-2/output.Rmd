@@ -1,0 +1,148 @@
+---
+title: "Untitled"
+output: html_document
+date: "2024-09-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Assignment-1
+
+```{r}
+setwd("~/Downloads/M A S T E R S /Sem-3/Part-1/Visualization/labs/lab-2")
+data = read.csv("olive.csv",header = TRUE)
+
+```
+
+#Q.1) 
+```{r}
+library(ggplot2)
+plot_1<- ggplot(data, aes(x = palmitic, y = oleic, color = linoleic)) + geom_point() + labs(title = "plot-1")
+                  
+plot_1
+```
+
+```{r}
+plot_2<- ggplot(data, aes(x = palmitic, y = oleic, color = cut_interval(linoleic, n = 4))) + geom_point() + labs(color = "Linoleic interval ", title = "plot-2") 
+
+plot_2
+```
+
+We see that plot2 is way easier to analyze compared to the first plot. Plot-1 is harder to analyze due to the variation in the opacity of the same color for attribute "Linoleic" making it relativity difficult to easily gain insights. When the same color is used with different levels of transparency, it becomes challenging for viewers to distinguish between different values.
+
+While in plot-2, we have converted the "Linoleic" attribute into a discrete variable allowing for different colors for different intervals which helps to visually segregate them and thus easier to analyze the plot and gain insights. 
+
+
+#Q.2) 
+a)
+```{r}
+plot_2<- ggplot(data, aes(x = palmitic, y = oleic, color = cut_interval(linoleic, n = 4))) + geom_point() + labs(color = "Linoleic interval ", title = "plot-2") 
+
+plot_2
+```
+
+
+b)
+```{r}
+plot_3<- ggplot(data, aes(x = palmitic, y = oleic, size = cut_interval(linoleic, n = 4))) + geom_point() + labs(size = "Linoleic interval ", title = "plot-3") 
+
+plot_3
+```
+
+c)
+```{r}
+
+data$linoleic_discrete <- cut_interval(data$linoleic, n = 4)
+
+plot_4<- ggplot(data, aes(x = palmitic, y = oleic)) + geom_point() + geom_spoke(aes(angle = as.numeric(linoleic_discrete) *pi/2, radius = 100))+ labs( title = "plot-4") 
+
+plot_4
+
+```
+
+Based on the plots mapped by Color, Size and Orientation angle,the orientation angle i.e plot-4 is the most difficult to differentiate between the categories. 
+
+Levels = 2 ^ bits 
+
+For color, we are encoding 2 bit of information which is 4 levels and we have 4 colors to differentiate them. And having 2 bit of information is said a good value based on the standard which is 4-5 levels (2.2 bits)
+
+For size, we are encoding 2 bit of information which is 4 levels and we have 4 sizes to differentiate them. And having 2 bit of information is said a good value based on the standard which is 10 levels (3.1 bits). 
+
+
+For orientation, we are encoding 2 bit of information which is a good value based on the standard for the line length and line orientation which is 2.8 and 3 respectively but it is still hard to easily distinguish the categories compared to color and size. 
+
+#Q.3) 
+```{r}
+plot_5<- ggplot(data, aes(x = oleic, y = eicosenoic, color = Region)) + geom_point() + labs(color = "Linoleic interval ", title = "plot-5") 
+
+plot_5
+
+```
+
+Such kind of plot can incorrectly define the categorical nature of the variable and thus be misleading.
+
+
+```{r}
+plot_6<- ggplot(data, aes(x = oleic, y = eicosenoic, color = factor(Region))) + geom_point() + labs(color = "Linoleic interval ", title = "plot-6") 
+
+plot_6
+
+```
+The decision boundaries can be easily and immediately be identified. 
+
+Preattentive mechanism makes it possible since boundary between two groups of elements with the same visual feature is detected preattentively
+
+
+#Q.4) 
+```{r}
+plot_7<- ggplot(data, aes(x = oleic, y = eicosenoic, color = cut_interval(linoleic, n = 3), shape = cut_interval(palmitic, n = 3), size = cut_interval(palmitoleic, n = 3))) + geom_point() + labs(color = "Linoleic interval ", title = "plot-7", size = "palmitoleic interval", shape = "palmitic interval") 
+
+plot_7
+
+```
+
+Due to overload of information and different legend values as shown in the above plot, it makes it difficult to differentiate between the observations.
+
+The perception problem is visual overload as we are overwhelming the user will different shape, size and color making it difficult to truly understand the plot with ease. 
+
+
+#Q.5) 
+```{r}
+plot_8<- ggplot(data, aes(x = oleic, y = eicosenoic, color = factor(Region), shape = cut_interval(palmitic, n = 3), size = cut_interval(palmitoleic, n = 3))) + geom_point() + labs(color = "Linoleic interval ", title = "plot-8", size = "palmitoleic interval", shape = "palmitic interval") 
+
+plot_8
+
+```
+
+This is because a figure is processed in parallel by checking individual feature maps. So we can visually notice differences preattentively for the basic visual features so we can easily differentiate by color. 
+
+But then to distinguish between a combination of visual features (red + square object) will take longer due to serial search. 
+
+
+#Q.6) 
+```{r}
+library(plotly)
+library(dplyr)
+var <- data %>% select(Area) %>% group_by(Area) %>% count() %>% mutate(Proportion = n / 572)
+var <- as.data.frame(var)
+
+var %>% plot_ly(labels = ~Area, values = ~Proportion, type = "pie", textinfo = 'none', hoverinfo = 'label+percent') %>% layout(showlegend = FALSE, title = 'proportions of oils from different areas')
+```
+
+
+Just by looking at the pie chart, it is hard to understand what area and percentage does each portion of the pie correspond to. We would need to hover over each part of the pie to identify the area and its percentage making it also hard to compare different portions of the pie.  
+
+#Q.7) 
+```{r}
+ggplot(data, aes(x = linoleic, y = eicosenoic)) + geom_density_2d() + labs (title="Plot-9")
+
+
+ggplot(data, aes(x = linoleic, y = eicosenoic)) + geom_point() + labs (title="Plot-10")
+
+```
+
+This is because while in the scatter plot we are able to see each data point so get more detail and clarity, the contour plot just shows the area of high and low concentration. And the contour plot provides less detail and just an abstraction which can also be misleading sometimes if for example the amount of data points that we have is less. 
+
+
