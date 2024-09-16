@@ -1,0 +1,96 @@
+---
+title: "Untitled"
+output: html_document
+date: "2024-09-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Question-2
+
+```{r}
+setwd("~/Downloads/M A S T E R S /Sem-3/Part-1/Visualization/labs/lab-3")
+
+data = read.csv("data.csv",header = TRUE)
+
+```
+
+# 1)
+```{r}
+library(stringr)
+library(tidyr)
+
+setwd("~/Downloads/M A S T E R S /Sem-3/Part-1/Visualization/labs/lab-3")
+
+county_map<-jsonlite::read_json("county.json")
+
+
+data$region<-str_sub(data$region,4,-1)
+data$region<-str_sub(data$region,1,-8)
+
+
+data <- spread(data,"age","X2016")
+
+colnames(data) <- c("region","young","adult","senior")
+
+
+data$region[4]<- "Gävleborg"
+data$region[6]<- "Jämtland"
+data$region[7]<- "Jönköping"
+data$region[11]<- "Skåne"
+data$region[13]<- "Södermanland"
+data$region[15]<- "Värmland"
+data$region[16]<- "Västerbotten"
+data$region[17]<- "Västernorrland"
+data$region[18]<- "Västmanland"
+data$region[19]<- "VästraGötaland"
+data$region[20]<- "Örebro"
+data$region[21]<- "Östergötland"
+
+```
+
+
+# 2)
+```{r}
+library(plotly)
+
+
+data %>% plot_ly(y= ~young, type = "box" , name = "young") %>% add_trace(y = ~adult, type ="box", name = "adult") %>% add_trace(y = ~senior, type ="box", name = "senior")
+
+```
+
+# 3)
+```{r}
+library(akima)
+attach(data)
+s=interp(young,adult,senior, duplicate = "mean")
+detach(data)
+
+plot_ly(x=~s$x, y=~s$y, z=~s$z, type="surface")
+
+```
+
+# 4)
+```{r}
+g=list(fitbounds="locations", visible=FALSE)
+
+plot_geo(data)%>%add_trace(type="choropleth",geojson=county_map, locations=~region,z=~adult, featureidkey="properties.NAME_1")%>%layout(geo=g)
+
+```
+
+```{r}
+g=list(fitbounds="locations", visible=FALSE)
+
+plot_geo(data)%>%add_trace(type="choropleth",geojson=county_map, locations=~region,z=~young, featureidkey="properties.NAME_1")%>%layout(geo=g)
+
+```
+
+# 5)
+```{r}
+g=list(fitbounds="locations", visible=FALSE)
+
+plot_geo(data)%>%add_trace(type="choropleth",geojson=county_map, locations=~region,z=~young, featureidkey="properties.NAME_1") %>% add_trace(type="scattergeo",lat=~58.4108, lon=~15.6214) %>%layout(geo=g)
+
+```
