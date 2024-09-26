@@ -1,0 +1,249 @@
+---
+title: "Untitled"
+output: html_document
+date: "2024-09-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Assigment-1
+
+```{r}
+setwd("~/Downloads/M A S T E R S /Sem-3/Part-1/Visualization/labs/lab-4")
+data = read.delim("prices-and-earnings.txt",header = TRUE)
+```
+
+
+
+# Q.1) 
+
+```{r}
+col_extract <- c(1,2,5,6,7,9,10,16,17,18,19) 
+
+data <- data[col_extract]
+
+rownames(data) <- data[,1]
+
+data<- data[,-1]
+```
+
+# Q.2)
+
+```{r}
+library(plotly)
+data_scaled=scale(data)
+
+plot_ly(x=colnames(data_scaled), y=rownames(data_scaled), 
+        z=data_scaled, type="heatmap", colors =colorRamp(c("yellow", "red")))
+```
+
+
+Based on the above heatmap, we dont see any distinct clusters i.e area with similar color intensity. We can only though see outliers that are colored in dark red and bright yellow that are spread across the heatmap. 
+
+# Q.3) 
+
+#a) 
+```{r}
+library(seriation)
+
+rowdist <- dist(data_scaled)
+coldist <- dist(t(data_scaled))
+
+order1 <- seriate(rowdist, method = "HC_complete")
+order2 <- seriate(coldist, method = "HC_complete")
+ord1 <- get_order(order1)
+ord2 <- get_order(order2)
+
+reordmatr<-data_scaled[rev(ord1),ord2]
+
+
+plot_ly(x=colnames(reordmatr), y=rownames(reordmatr), 
+        z=reordmatr, type="heatmap", colors =colorRamp(c("yellow", "red")))
+
+```
+
+
+
+#b) 
+```{r}
+
+rowdist_2 <- as.dist(1-cor(t(data_scaled))) #tranpose here cause cor() finds the correlation between columns
+coldist_2 <- as.dist(1-cor(data_scaled))
+
+
+order1_cor <- seriate(rowdist_2, method = "HC_complete")
+order2_cor <- seriate(coldist_2, method = "HC_complete")
+ord1_cor <- get_order(order1_cor)
+ord2_cor <- get_order(order2_cor)
+
+reordmatr_2<-data_scaled[rev(ord1_cor),ord2_cor]
+
+
+plot_ly(x=colnames(reordmatr_2), y=rownames(reordmatr_2), 
+        z=reordmatr_2, type="heatmap", colors =colorRamp(c("yellow", "red")))
+```
+
+
+Based on the 2 heatmaps, plot a) is easier to analyse since the intensity of similar colors is less spread out compared to plot b) and most are clustered around the same area. Additionally, we can see a more distinct partition of the heatmap into 4 quadrants making it easier to analyse each of them separately and also understand how the color scheme switches from one quadrant to another. 
+
+
+Analysis of plot a): 
+
+We notice 2 clusters of cities mentioned on the top and  bottom. If we look further into these cities it suggests that cities on the top are developed cities (Zurich, Luxembourg etc.) and the cities in the bottom are developing/underdeveloped (Nairobi, Cairo etc.). 
+
+Let us name developed cities as cluster-1 and the underdeveloped cities as cluster-2 based on the heatmap. 
+
+For cluster-1, we see that for variables like "Big.Mac.Min" , "iphone.4s.hr" , "Rice.kg.in.min" it takes lesser time compared to the average. While for other variables like "Goods and Services", "Wage.Net, "Food.Costs" are higher compared to the average. And the basically the opposite can be said for cluster-2. This insights also reaffirms to the point that cluster-1 comprises of developed cities and cluster-2 comprises of developing/underdeveloped cities. And there is a direct correlation within these 2 clusters for different attributes mentioned above i.e they follow the same patterns for those attributes. 
+
+
+# Q.4) 
+```{r}
+
+order1_tsp <- seriate(rowdist, method = "TSP")
+order2_tsp <- seriate(coldist, method = "TSP")
+ord1_tsp <- get_order(order1_tsp)
+ord2_tsp <- get_order(order2_tsp)
+
+reordmatr_3<-data_scaled[rev(ord1_tsp),ord2_tsp]
+
+plot_ly(x=colnames(reordmatr_3), y=rownames(reordmatr_3), 
+        z=reordmatr_3, type="heatmap", colors =colorRamp(c("yellow", "red")))
+
+
+print("HC solver using Euclidean distance:")
+cat("\n")
+rbind(
+    unordered = criterion(rowdist),
+    ordered = criterion(rowdist, order1)
+)
+
+cat("\n")
+print("HC solver using one minus correlation:")
+cat("\n")
+rbind(
+    unordered = criterion(rowdist),
+    ordered = criterion(rowdist, order1_cor)
+)
+
+cat("\n")
+print("TSP:")
+cat("\n")
+rbind(
+    unordered = criterion(rowdist),
+    ordered = criterion(rowdist, order1_tsp)
+)
+
+
+```
+
+
+Based on the 2 plots, the plot produced by the HC solver using Euclidean distance is relatively better to analyse. However the TSP plot is better than than the plot produced by the HC solver using  one minus correlation. 
+
+
+As we can see the value of the Path length for TSP is lower than that of the others which suggests that it is more efficient. The path length for TSP is 123.5 while for HC solver using Euclidean distance is 138.9 so there is not a drastic difference and that can also be seen in the plots. 
+
+And since we want to a lower gradient value, the lowest one is for TSP too.  
+
+
+
+# Q.5) 
+```{r}
+library(plotly)
+
+
+#Plotly - can not see observation ID
+data=data
+
+
+p <- data %>%
+  plot_ly(type = 'parcoords', 
+          line = list(color = ~ifelse(iPhone.4S.hr. <= 50, 1, 2),  # Use numeric values for color assignment
+                colorscale = list(c(1, 2), c('red', 'blue'))),
+          
+          dimensions = list(
+            list(label = 'Food Costs', values = ~Food.Costs...),
+            list(label = 'iPhone 4S.hr', values = ~iPhone.4S.hr.),
+            list(label = 'Clothing Index', values = ~Clothing.Index),
+            list(label = 'Hours Worked', values = ~Hours.Worked),
+            list(label = 'Wage Net', values = ~Wage.Net),
+            list(label = 'Vacation Days', values = ~Vacation.Days),
+            list(label = 'Big Mac min', values = ~Big.Mac.min.),
+            list(label = 'Bread kg in min', values = ~Bread.kg.in.min.),
+            list(label = 'Rice kg in min', values = ~Rice.kg.in.min.),
+            list(label = 'Goods and Services', values = ~Goods.and.Services...)
+          )
+  )
+
+p
+
+```
+
+
+
+For the dark color lines, the variables that are important to define this cluster are: "iPhone 4S.hr", "Big Mac min", "Bread kg in min", "Rice kg in min" and "Goods and Services" 
+
+Values: 
+iPhone 4S.hr -> Less than or equal to 50
+Big Mac min -> Less than or equal to 20
+Bread kg in min -> Less than or equal to 20
+Rice kg in min -> Less than or equal to 15
+Goods and Services -> greater than or equal to 3000
+
+Based on the above values, this cluster resembles that of a developed country. 
+ 
+
+For the yellow color lines, the variables that are important to define this cluster are: "Wage Net", "Clothing Index", "Food Costs" and "Goods and Services" 
+
+Values: 
+Wage Net -> Less than or equal to 35
+Clothing Index -> Less than or equal to 70
+Food Costs -> Less than or equal to 400
+Goods and Services -> Less than or equal to 2500 
+
+
+Based on the above values, this cluster resembles that of a underdeveloped/developing country. 
+
+
+One prominent outlier is the only one that had the food costs value more than 900, while the rest are all below 700. This particular outlier also has very high values (the highest in some) for attributes like "Clothing Index" and "Goods and Services". While having very low values for attributes like "iPhone 4S.hr" and "Big Mac min". This suggests that this particular outlier is a highly developed country. 
+
+# Q.6) 
+```{r fig.width=10, fig.height=8, echo=FALSE}
+#Juxtaposed
+library(dplyr)
+
+##ggplot2
+library(scales)
+
+reordmatr_radar <- as.data.frame(reordmatr)
+
+reordmatr_radar<-reordmatr_radar%>% mutate_all(funs(rescale))
+reordmatr_radar$name=rownames(reordmatr)
+reordmatr_radar_2 <- reordmatr_radar%>%tidyr::gather(variable, value, -name, factor_key=T)%>%arrange(name)
+p<-reordmatr_radar_2 %>%
+  ggplot(aes(x=variable, y=value, group=name)) + 
+  geom_polygon(fill="blue") + 
+  coord_polar() + theme_bw() + facet_wrap(~ name) + 
+  theme(axis.text.x = element_text(size = 5))
+p
+
+```
+
+Based on the plot, the 2 cluster: 
+
+1) Top left, which all look to have similar shapes. 
+
+2) Bottom left, we can see similar shapes here too. 
+
+A distinct outlier is the Tokyo which covers a huge area around "Costs", "Wage Net", "Clothing Index", "Goods and Services" etc. While it covers little to no area in the rest of the attributes. 
+
+
+# Q.7) 
+
+Based on the 3, the heatmap was the best to analyze the data and easily get meaningful insights. The parallel coordinates plot reaffirmed some insights that I was able to easily get from the heatmap. The parallel coordinates plot also doesnt proivide row value names i.e city so futher insights could not be drawn based on this information. 
+
+The heatmap allowed for a more efficiently way of looking at the plot based on the color gradient making it easier to see how the color changes across the plot which helped see the direction of the color gradients especially after reordering the data. This helped to identify attributes and the corresponding rows that followed a trend. 
+
+The radar plot was definitely hardest to analyze among the 3 due to the number of shapes and each being unique so it had to be looked it much detial to see patterns in the shapes. 
