@@ -1,0 +1,448 @@
+---
+title: "732A98 Lab4 Report"
+author: "Nazli Bilgic(nazbi056), Siddhesh Sreedor(sidsr770)"
+date: "`r Sys.Date()`"
+output: html_document
+header-includes:
+  - "\\usepackage{newunicodechar}"
+  - "\\newunicodechar{−}{-}"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Statement of Contribution
+
+Siddhesh Sreedor (sidsr770) was responsible for coding and writing analysis for assignment one.
+
+Nazli Bilgic (nazbi056) was responsible for coding and writing analysis for assignment two.
+
+We split the work and after completion we collaborated together to do and understand the other persons work.
+
+## Assignment 1: High-dimensional visualization of economic data
+
+File prices-and-earnings.txt shows a UBS’s (one of the largest banks in the world) report comparing prices, wages, and other economic conditions in cities around the world. Some of the variables measured in 73 cities are Cost of Living, Food Costs, Average Hourly Wage, average number of Working Hours per Year, average number of Vacation Days, hours of work (at the average wage) needed to buy an iPhone, minutes of work needed to buy a Big Mac, and Women’s Clothing Cost.
+
+1) For further analysis, import data to R and keep only the columns with the following numbers: 1,2,5,6,7,9,10,16,17,18,19. Use the first column as labels in further analysis.
+
+
+```{r q0,echo=FALSE}
+data = read.delim("prices-and-earnings.txt",header = TRUE)
+```
+
+
+```{r q1.1,echo=FALSE,warning=FALSE,message=FALSE}
+col_extract <- c(1,2,5,6,7,9,10,16,17,18,19) 
+
+data <- data[col_extract]
+
+rownames(data) <- data[,1]
+
+data<- data[,-1]
+```
+
+2) Plot a heatmap of the data without doing any reordering. Is it possible to see clusters, outliers?
+
+```{r q1.2,echo=FALSE,warning=FALSE,message=FALSE}
+
+library(plotly)
+data_scaled=scale(data)
+
+plot_ly(x=colnames(data_scaled), y=rownames(data_scaled), 
+        z=data_scaled, type="heatmap", colors =colorRamp(c("yellow", "red")))
+```
+
+Based on the above heatmap, we dont see any distinct clusters i.e area with similar color intensity. We can only though see outliers that are colored in dark red and bright yellow that are spread across the heatmap. 
+
+3) Compute distance matrices by a) using Euclidian distance and b) as one minus correlation. For both cases, compute orders that optimize Hamiltonian Path Length and use Hierarchical Clustering (HC) as the optimization algorithm. Plot two respective heatmaps and state which plot seems to be easier to analyse and why. Make a detailed analysis of the plot based on Euclidian distance. Use Euclidian Distance matrix in all coming steps.
+
+a) 
+```{r q1.3.a,echo=FALSE,warning=FALSE,message=FALSE}
+library(seriation)
+
+rowdist <- dist(data_scaled)
+coldist <- dist(t(data_scaled))
+
+order1 <- seriate(rowdist, method = "HC_complete")
+order2 <- seriate(coldist, method = "HC_complete")
+ord1 <- get_order(order1)
+ord2 <- get_order(order2)
+
+reordmatr<-data_scaled[rev(ord1),ord2]
+
+
+plot_ly(x=colnames(reordmatr), y=rownames(reordmatr), 
+        z=reordmatr, type="heatmap", colors =colorRamp(c("yellow", "red")))
+
+```
+
+b) 
+```{r q1.3.b,echo=FALSE,warning=FALSE,message=FALSE}
+
+rowdist_2 <- as.dist(1-cor(t(data_scaled))) #tranpose here cause cor() finds the correlation between columns
+coldist_2 <- as.dist(1-cor(data_scaled))
+
+
+order1_cor <- seriate(rowdist_2, method = "HC_complete")
+order2_cor <- seriate(coldist_2, method = "HC_complete")
+ord1_cor <- get_order(order1_cor)
+ord2_cor <- get_order(order2_cor)
+
+reordmatr_2<-data_scaled[rev(ord1_cor),ord2_cor]
+
+
+plot_ly(x=colnames(reordmatr_2), y=rownames(reordmatr_2), 
+        z=reordmatr_2, type="heatmap", colors =colorRamp(c("yellow", "red")))
+```
+
+
+Based on the 2 heatmaps, plot a) is easier to analyse since the intensity of similar colors is less spread out compared to plot b) and most are clustered around the same area. Additionally, we can see a more distinct partition of the heatmap into 4 quadrants making it easier to analyse each of them separately and also understand how the color scheme switches from one quadrant to another. 
+
+
+Analysis of plot a): 
+
+We notice 2 clusters of cities mentioned on the top and  bottom. If we look further into these cities it suggests that cities on the top are developed cities (Zurich, Luxembourg etc.) and the cities in the bottom are developing/underdeveloped (Nairobi, Cairo etc.). 
+
+Let us name developed cities as cluster-1 and the underdeveloped cities as cluster-2 based on the heatmap. 
+
+For cluster-1, we see that for variables like "Big.Mac.Min" , "iphone.4s.hr" , "Rice.kg.in.min" it takes lesser time compared to the average. While for other variables like "Goods and Services", "Wage.Net, "Food.Costs" are higher compared to the average. And the basically the opposite can be said for cluster-2. This insights also reaffirms to the point that cluster-1 comprises of developed cities and cluster-2 comprises of developing/underdeveloped cities. And there is a direct correlation within these 2 clusters for different attributes mentioned above i.e they follow the same patterns for those attributes. 
+
+
+4) Compute a permutation that optimizes Hamiltonian Path Length but uses Traveling Salesman Problem (TSP) as solver. Compare the heatmap given by this reordering with the heatmap produced by the HC solver in the previous step – which one seems to be better? Compare also objective function values such as Hamiltonian Path length and Gradient measure achieved by row permutations of TSP and HC solvers (Hint: use criterion() function)
+
+```{r q1.4,echo=FALSE,warning=FALSE,message=FALSE}
+
+order1_tsp <- seriate(rowdist, method = "TSP")
+order2_tsp <- seriate(coldist, method = "TSP")
+ord1_tsp <- get_order(order1_tsp)
+ord2_tsp <- get_order(order2_tsp)
+
+reordmatr_3<-data_scaled[rev(ord1_tsp),ord2_tsp]
+
+plot_ly(x=colnames(reordmatr_3), y=rownames(reordmatr_3), 
+        z=reordmatr_3, type="heatmap", colors =colorRamp(c("yellow", "red")))
+
+
+print("HC solver using Euclidean distance:")
+cat("\n")
+rbind(
+    unordered = criterion(rowdist),
+    ordered = criterion(rowdist, order1)
+)
+
+cat("\n")
+print("HC solver using one minus correlation:")
+cat("\n")
+rbind(
+    unordered = criterion(rowdist),
+    ordered = criterion(rowdist, order1_cor)
+)
+
+cat("\n")
+print("TSP:")
+cat("\n")
+rbind(
+    unordered = criterion(rowdist),
+    ordered = criterion(rowdist, order1_tsp)
+)
+
+```
+
+
+Based on the 2 plots, the plot produced by the HC solver using Euclidean distance is relatively better to analyse. However the TSP plot is better than than the plot produced by the HC solver using  one minus correlation. 
+
+
+As we can see the value of the Path length for TSP is lower than that of the others which suggests that it is more efficient. The path length for TSP is 123.5 while for HC solver using Euclidean distance is 138.9 so there is not a drastic difference and that can also be seen in the plots. 
+
+And since we want to a lower gradient value, the lowest one is for TSP too.  
+
+5)  Use Ploty to create parallel coordinate plots from unsorted data and try to permute the variables in the plot manually to achieve a better clustering picture. After you are ready with this, brush clusters by different colors and comment about the properties of the clusters: which variables are important to define these clusters and what values of these variables are specific to each cluster. Can these clusters be interpreted? Find the most prominent outlier and interpret it.
+
+```{r q1.5,echo=FALSE,warning=FALSE,message=FALSE}
+library(plotly)
+
+#plotly - can not see observation ID
+data=data
+
+
+p <- data %>%
+  plot_ly(type = 'parcoords', 
+          line = list(color = ~ifelse(iPhone.4S.hr. <= 50, 1, 2),  # use numeric vals for color assignment
+                colorscale = list(c(1, 2), c('red', 'blue'))),
+          
+          dimensions = list(
+            list(label = 'Food Costs', values = ~Food.Costs...),
+            list(label = 'iPhone 4S.hr', values = ~iPhone.4S.hr.),
+            list(label = 'Clothing Index', values = ~Clothing.Index),
+            list(label = 'Hours Worked', values = ~Hours.Worked),
+            list(label = 'Wage Net', values = ~Wage.Net),
+            list(label = 'Vacation Days', values = ~Vacation.Days),
+            list(label = 'Big Mac min', values = ~Big.Mac.min.),
+            list(label = 'Bread kg in min', values = ~Bread.kg.in.min.),
+            list(label = 'Rice kg in min', values = ~Rice.kg.in.min.),
+            list(label = 'Goods and Services', values = ~Goods.and.Services...)
+          )
+  )
+
+p
+
+```
+
+
+
+For the dark color lines, the variables that are important to define this cluster are: "iPhone 4S.hr", "Big Mac min", "Bread kg in min", "Rice kg in min" and "Goods and Services" 
+
+Values: 
+iPhone 4S.hr -> Less than or equal to 50
+Big Mac min -> Less than or equal to 20
+Bread kg in min -> Less than or equal to 20
+Rice kg in min -> Less than or equal to 15
+Goods and Services -> greater than or equal to 3000
+
+Based on the above values, this cluster resembles that of a developed country. 
+ 
+
+For the yellow color lines, the variables that are important to define this cluster are: "Wage Net", "Clothing Index", "Food Costs" and "Goods and Services" 
+
+Values: 
+Wage Net -> Less than or equal to 35
+Clothing Index -> Less than or equal to 70
+Food Costs -> Less than or equal to 400
+Goods and Services -> Less than or equal to 2500 
+
+
+Based on the above values, this cluster resembles that of a underdeveloped/developing country. 
+
+
+One prominent outlier is the only one that had the food costs value more than 900, while the rest are all below 700. This particular outlier also has very high values (the highest in some) for attributes like "Clothing Index" and "Goods and Services". While having very low values for attributes like "iPhone 4S.hr" and "Big Mac min". This suggests that this particular outlier is a highly developed country. 
+
+6) Use the data obtained by using the HC solver and create a radar chart diagram with juxtaposed radars. Identify two smaller clusters in your data (choose yourself which ones) and the most distinct outlier.
+
+```{r q6,echo=FALSE,fig.width=10, fig.height=8, echo=FALSE,warning=FALSE,message=FALSE}
+#Juxtaposed
+library(dplyr)
+
+##ggplot2
+library(scales)
+
+reordmatr_radar <- as.data.frame(reordmatr)
+
+reordmatr_radar<-reordmatr_radar%>% mutate_all(funs(rescale))
+reordmatr_radar$name=rownames(reordmatr)
+reordmatr_radar_2 <- reordmatr_radar%>%tidyr::gather(variable, value, -name, factor_key=T)%>%arrange(name)
+p<-reordmatr_radar_2 %>%
+  ggplot(aes(x=variable, y=value, group=name)) + 
+  geom_polygon(fill="blue") + 
+  coord_polar() + theme_bw() + facet_wrap(~ name) + 
+  theme(axis.text.x = element_text(size = 5))
+p
+
+```
+
+Based on the plot, the 2 cluster: 
+
+1) Top left, which all look to have similar shapes. 
+
+2) Bottom left, we can see similar shapes here too. 
+
+A distinct outlier is the Tokyo which covers a huge area around "Costs", "Wage Net", "Clothing Index", "Goods and Services" etc. While it covers little to no area in the rest of the attributes. 
+
+7) Which of the tools you have used in this assignment (heatmaps, parallel coordinates or radar charts) was best in analyzing these data? From which perspective? (e.g. efficiency, simplicity, etc.)
+
+Based on the 3, the heatmap was the best to analyze the data and easily get meaningful insights. The parallel coordinates plot reaffirmed some insights that I was able to easily get from the heatmap. The parallel coordinates plot also doesnt proivide row value names i.e city so futher insights could not be drawn based on this information. 
+
+The heatmap allowed for a more efficiently way of looking at the plot based on the color gradient making it easier to see how the color changes across the plot which helped see the direction of the color gradients especially after reordering the data. This helped to identify attributes and the corresponding rows that followed a trend. 
+
+The radar plot was definitely hardest to analyze among the 3 due to the number of shapes and each being unique so it had to be looked it much detial to see patterns in the shapes. 
+
+## Assignment 2: Trellis plots for population analysis
+
+1) Use ggplot2 to make a scatter plot of Hours per Week versus age where observations are
+colored by Income level. Why it is problematic to analyze this plot? Make a trellis plot of the
+same kind where you condition on Income Level. What new conclusions can you make here?
+
+```{r q2.1,echo=FALSE,warning=FALSE,message=FALSE}
+library(ggplot2)
+library(plotly)
+
+
+population_data <- read.csv("adult.csv", header = FALSE)
+
+colnames(population_data) <- c("age", "workclass", "fnlwgt", "education", "education_num", "marital_status", "occupation", "relationship", "race", 
+                               "sex", "capital_gain", "capital_loss", "hours_per_week", "native-country", "income_level")
+
+plot1 <- ggplot(population_data, aes(x = hours_per_week, y = age, color = income_level)) +
+  geom_point() +
+  labs(x = "hours per week", y = "age")
+
+plot1
+
+trellis_plot_wrap <- ggplot(population_data, aes(x = hours_per_week, y = age)) +
+  geom_point() +geom_smooth()+
+  labs(x = "hours per week", y = "age") +
+  facet_wrap(~ income_level, labeller = "label_both")
+
+trellis_plot_wrap
+```
+
+In the first plot, the points are too close together(overplotting), making it difficult to distinguish between those representing different income levels (<=50K and >50K). There is no a clear separation according to income level also we can not make clear conclusions about the age and hours per week variables.
+
+Trellis plot:
+
+With the trellis plot have two separate panels for "<=50k" and ">50K" income levels. Now we can see points separately without having over plotting problem. 
+
+People with income level(<=50K), points are more concentrated 30-50 hours per work and age under 45. For people with the income level<=50 and  Age>60 work fewer hours. 
+
+People with income level (>50K), points are more concentrated 30-50 hours per work and age between 25-60. 
+Also, number of points are decreased 0-25 hours per week for every age interval. Blue line shows downward trend. 25-40 age group works more hours even they have <=50K or >50k income.
+
+2)  Use ggplot2 to create a density plot of age grouped by the Income level. Create a trellis plot
+of the same kind where you condition on Marital Status. Analyze these two plots and make
+conclusions.
+
+```{r q2.2,echo=FALSE,warning=FALSE,message=FALSE}
+library(ggplot2)
+
+income_level<-population_data$income_level
+  
+plot2 <- ggplot(data = population_data, aes(x = age, fill = income_level)) +
+  geom_density(alpha = 0.5, kernel = "gaussian") +
+  labs(x = "age", y = "density", title = "density plot of age-income level")
+
+plot2
+
+trellis_plot2 <- ggplot(data = population_data, aes(x = age, fill = income_level)) +
+  geom_density(alpha = 0.5, kernel = "gaussian") +
+  labs(x = "age", y = "density", title = "trellis density plot-age-income level, marital status") +
+  facet_wrap(~ marital_status) 
+
+trellis_plot2
+```
+
+Comments on the first density plot: income level (<=50, red) is more concentrated on ages less than 50 and has the highest point around 20-30 ages.
+Blue distribution which is income level >50K has a peak around 40-45 years. Two income levels are overlapping around age from 20 to 80. 
+Overall, people with age less than 25 has <=50k income level. as age increase income rate increases. 
+
+Comments for the trellis plots: 
+
+Never married marital status and income level(<=50K) shows concentration in younger ages and has peak point between 20-25 age interval. The plot is more skewed to the younger ages. The income level >50K has highest point around 30-40 age interval for the never married marital status.
+
+People who are married, those with a spouse are much more likely to earn more than 50K(married-AF-spouse).
+
+Divorced, separated, widowed marital status; show higher density in <=50K so they have lower income level. 
+
+Age and income: people aged 40 to 60 are more likely to have an income more than 50K.
+
+Marital status and income: "married with a spouse present" is linked with having a higher income.
+
+3)  Filter out all observations having Capital loss equal to zero. For the remaining data, use Plotly
+to create a 3D-scatter plot of Education-num vs Age vs Captial Loss. Why is it difficult to analyze this plot? Create a trellis plot with 6 panels in ggplot2 in which each panel shows a raster-type 2d-density plot of Capital Loss versus Education-num conditioned on values of Age (use cut_number() ) . Analyze this plot.
+
+```{r q2.3,echo=FALSE,warning=FALSE,message=FALSE}
+
+capital_zero <- population_data[population_data$capital_loss != 0, ]
+
+plot_3d <- plot_ly(
+  capital_zero, 
+  x = ~education_num,    
+  y = ~age,
+  z = ~capital_loss,
+  type = "scatter3d",
+  mode = "markers", 
+  marker = list(size = 4, color = ~capital_loss, colorscale = "Viridis", showscale = TRUE) 
+)
+
+plot_3d
+```
+
+Difficulties to analyze the plot: For 3d plots, points can overlap from different view angles and this can affect our outcomes about the variables. In order to make accurate outcomes the plot has to be rotated for different variables. Interaction with the plot is required for full insight of the data.
+
+```{r 2.3.1,echo=FALSE,warning=FALSE,message=FALSE}
+capital_zero$age_grp <- cut_number(capital_zero$age, n = 6)
+
+plott<-ggplot(capital_zero, aes(x = education_num, y = capital_loss)) +
+  geom_density_2d_filled() +  
+  facet_wrap(~ age_grp, ncol = 3) + 
+  labs(
+    title = "density plot-capital loss and education number",
+    x = "education number",
+    y = "capital loss",
+    fill = "density"
+  )
+
+plott
+```
+
+Darker parts has less density and lighter areas(green, yellow) has more density.
+
+Areas with higher density are mostly around 8-12 education number and around 1500-2000 capital loss.
+
+Age group [17,29] shows more centralized density around range 8 to 12 years education. 
+
+(54,90] age group shows more spread with education number from 8 to 16.
+
+From all the plots we can see that capital loss is peaking between 1500 and 2000 for different education numbers. so we can say that capital loss is not influenced by education number.
+
+4) Make a trellis plot containing 4 panels where each panel should show a scatter plot of Capital Loss versus Education-num conditioned on the values of Age by a) using cut_number() b) using Shingles with 10% overlap. Which advantages and disadvantages you see in using Shingles?
+
+```{r q2.4.a,echo=FALSE,warning=FALSE,message=FALSE}
+population_data$age_group <- cut_number(population_data$age, n = 4)
+
+
+ggplot(population_data, aes(x = education_num, y = capital_loss)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~age_group, ncol = 2) +
+  labs(title = "scatter plot of capital loss-education number",
+       x = "education number",
+       y = "capital loss") 
+```
+
+```{r q2.4.b,echo=FALSE,warning=FALSE,message=FALSE}
+shingles_age <- lattice::equal.count(population_data$age, number=4, overlap=0.1)
+
+# Convert shingles to a data frame to extract lower and upper bounds
+L <- matrix(unlist(levels(shingles_age)), ncol=2, byrow = TRUE)
+L1 <- data.frame(Lower = as.numeric(L[,1]), Upper = as.numeric(L[,2]), Interval = factor(1:nrow(L)))
+#ggplot(L1)+geom_linerange(aes(ymin = Lower, ymax = Upper, x=Interval))
+
+index=c()
+Class=c()
+
+for(i in 1:nrow(L1)){
+  Cl=paste("[", L1$Lower[i],",",L1$Upper[i],"]",sep="")
+  ind=which(population_data$age>=L1$Lower[i] &population_data$age<=L1$Upper[i])
+  index=c(index,ind)
+  Class=c(Class, rep(Cl, length(ind)))
+}
+
+df4<-population_data[index,]
+df4$Class<-as.factor(Class)
+
+ggplot(df4, aes(x = education_num, y = capital_loss)) +
+  geom_point(alpha = 0.5) + 
+  facet_wrap(~ Class, nrow = 2) + 
+  labs(title = " shingles scatter plot-capital loss and education number",
+       x = "education number",
+       y = "capital loss")
+
+```
+
+
+Disadvantage is that we replicate data multiple times in different classes. 
+We can see that all intervals overlap. (For example: [16.5,28.5] and [26.5,38.5])
+
+For this example we do not see advantage for using shingles. Because, don't see big difference between the output scatter plots for questions (a) and (b).
+
+# Appendix
+
+```{r ref-appendix, echo=FALSE, results='asis'}
+all_labels <- knitr::all_labels()
+for (label in all_labels) {  
+  if (label != "ref-appendix") {  # Skip the appendix chunk itself    
+    cat("### Chunk Label: ", label, "\n\n")    
+    cat("```r\n")    
+    code <- knitr::knit_code$get(label)    
+    cat(paste(code, collapse = "\n"))  
+    cat("\n```\n\n")  }}
+```
