@@ -175,7 +175,7 @@ tour <- proj_dat %>%
   add_segments(xend = 0, yend = 0, color = I("gray80")) %>%
   add_text(text = ~variable) %>%
   add_markers(data = tour_dat, text = ~state, ids = ~state, hoverinfo = "text") %>%
-  layout(xaxis = ax, yaxis = ax)#%>%animation_opts(frame=0, transition=0, redraw = F)
+  layout(xaxis = ax, yaxis = ax, showlegend = FALSE)#%>%animation_opts(frame=0, transition=0, redraw = F)
 tour
 
 ```
