@@ -178,19 +178,6 @@ tour <- proj_dat %>%
   layout(xaxis = ax, yaxis = ax)#%>%animation_opts(frame=0, transition=0, redraw = F)
 tour
 
-
-#linking
-mtcars1<-mtcars
-mtcars1$state<-rownames(mtcars)
-mtcars2<-highlight_key(mtcars1, ~state, group="A")
-barChart<-plot_ly(mtcars2,x=~factor(cyl))%>%add_histogram()
-
-
-
-subplot(tour, barChart%>%layout(barmode="overlay"))%>%
-  highlight(persistent = TRUE, dynamic = TRUE)%>%hide_legend()
-
-
 ```
 
 
