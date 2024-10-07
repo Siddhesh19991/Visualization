@@ -1,0 +1,373 @@
+---
+title: "732A98 Lab5 Report"
+author: "Nazli Bilgic(nazbi056), Siddhesh Sreedor(sidsr770)"
+date: "`r Sys.Date()`"
+output: html_document
+header-includes:
+  - "\\usepackage{newunicodechar}"
+  - "\\newunicodechar{−}{-}"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Statement of Contribution
+
+Nazli Bilgic (nazbi056) was responsible for coding and writing analysis for assignment one.
+
+Siddhesh Sreedor (sidsr770) was responsible for coding and writing analysis for assignment two.
+
+We split the work and after completion we collaborated together to do and understand the other persons work.
+
+## Assignment 1: Network visualization of terrorist connections
+Files trainData.dat and trainMeta.dat contain information about a network of the individuals involved in the bombing of commuter trains in Madrid on March 11, 2004. The names included were of those people suspected of having participated and their relatives.
+File trainMeta.dat contains the names of individuals (first column) and Bombing group (second column) which shows “1” if person participated in placing the explosives and “0” otherwise. According to the order in this file, persons were enumerated 1-70.
+File trainData.dat contains information about connections between the individuals (first two columns) and strength of ties linking (from one to four):
+1. Trust--friendship (contact, kinship, links in the telephone center). 2. Ties to Al Qaeda and to Osama Bin Laden.
+3. Co-participation in training camps and/or wars.
+4. Co-participation in previous terrorist Attacks (Sept 11, Casablanca).
+
+1) Use visNetwork package to plot the graph in which
+
+    a)  you use strength of links variable
+    
+    b)nodes are colored by Bombing Group.
+    
+    c)size of nodes is proportional to the number of connections ( function strength() from
+      IGRAPH might be useful here)
+      
+    d)you use a layout that optimizes repulsion forces (visPhysics(solver=”repulsion”)).
+    
+    e) all nodes that are connected to a currently selected node by a path of length one are
+      highlighted
+      
+Analyse the obtained network, in particular describe which clusters you see in the network.
+
+```{r q1.1,echo=FALSE,warning=FALSE,message=FALSE}
+library(igraph)
+library(visNetwork)
+
+setwd("~/Downloads/M A S T E R S /Sem-3/Part-1/Visualization/labs/lab-5")
+
+trainMeta <- read.table("trainMeta.dat")
+trainData <- read.table("trainData.dat")
+
+
+colnames(trainMeta) <- c("name_person", "bombing_group")
+colnames(trainData) <- c("from", "to", "strength")
+n_nodes <- nrow(trainMeta) 
+
+nodes_data <- data.frame(id = 1:n_nodes,
+                         label = trainMeta$name_person,
+                         group = trainMeta$bombing_group)
+
+links_data<-data.frame(from=trainData$from,
+                       to=trainData$to, 
+                       strength=trainData$strength)
+
+#solve the character problem
+nodes_data$label[21] <- "José Emilio Suárez"
+nodes_data$label[17] <- "Alí Amrous"
+
+
+
+links_data <- aggregate(links_data[, 3], links_data[, 1:2], sum)
+links_data <- links_data[order(links_data$from, links_data$to),]
+colnames(links_data)[3] <- "weight"
+rownames(links_data) <- NULL
+
+
+network <- graph_from_data_frame(d = links_data, vertices = nodes_data, directed = F)
+
+nodes_data$value <- strength(network) #size of the node
+
+visNetwork(nodes_data, links_data) %>%
+  visNodes(scaling = list(min = min(nodes_data$value), max = max(nodes_data$value))) %>%  
+  visEdges(scaling = list(min = min(links_data$weight), max = max(links_data$weight))) %>% #scale edges strength
+  visPhysics(solver = "repulsion") %>%
+  #degree=1 only highlight the ones connected to selected node
+  visOptions(highlightNearest = list(enabled = TRUE, degree = 1)) %>% 
+  visLegend(main = "Bombing group: 1-participated and 0-not participated")
+```
+
+Blue nodes are people who participated in the bombing and yellow colored nodes are the ones that didn't participate. Node-1 is a hub from blue nodes and node-7 is a hub from yellow nodes. Node sizes are proportional to the number of connections. Larger nodes have more connections to other people in the network.
+
+There is a cluster with the blue nodes are dominated and one with yellow nodes dominated in the center of teh graph. 
+Also there are two seperate clusters which contain only yellow nodes apart from the center. These two clusters have less connections to the network which can show that they are less integrated with the participangts of bombing.
+
+we can see that some yellow nodes dont have any connection s with the blue nodes. But all blue nodes somehow have connections with some yellow nodes. This can show that people who are involved in the bombing have more connections than the ones that are not involved.
+
+2) Add a functionality to the plot in step 1 that highlights all nodes that are connected to the selected node by a path of length one or two. Check some amount of the largest nodes and comment which individual has the best opportunity to spread the information in the network. Read some information about this person in Google and present your findings.
+
+```{r q1.2,echo=FALSE,warning=FALSE,warning=FALSE,message=FALSE}
+visNetwork(nodes_data, links_data) %>%
+  visNodes(scaling = list(min = min(nodes_data$value), max = max(nodes_data$value))) %>%  
+  visEdges(scaling = list(min = min(links_data$weight), max = max(links_data$weight))) %>% #scale edges strength
+  visPhysics(solver = "repulsion") %>%
+  #degree=1 only highlight the ones connected to selected node
+  visOptions(highlightNearest = list(enabled = TRUE, degree = 2)) %>% 
+  visLegend(main = "Bombing group: 1-participated and 0-not participated") 
+```
+
+The largest nodes are node-1,node-3 and node-11. Especially node-1 and node-3 are also in the center of the cluster.
+So these have better opportunity to spread information in the network.
+node-1 is "Jamal Zougam ". Jamal Zougam is one of six men implicated in the 2004 Madrid train bombings. 
+He is accused of murder, stealing a vehicle, belonging to a terrorist organisation and four counts of carrying out terrorist acts.
+Spain's El Pais newspaper says three witnesses have testified to seeing him leave a rucksack aboard one of the bombed trains.
+resource: https://en.wikipedia.org/wiki/Jamal_Zougam
+
+3) Compute clusters by optimizing edge betweenness and visualize the resulting network. Comment whether the clusters you identified manually in step 1 were also discovered by this clustering method.
+
+```{r q1.3,echo=FALSE,warning=FALSE,message=FALSE}
+nodes1<-nodes_data
+
+ceb <- cluster_edge_betweenness(network) 
+nodes1$group<-ceb$membership
+
+visNetwork(nodes1,links_data)%>%visIgraphLayout()
+```
+
+Every color in the garph represents another cluster. I would say it detected more different clusters than the previous method. Edge betweenness
+detected more hidden clusters which couldnt be realized with visual detection.
+
+4) Use adjacency matrix representation to perform a permutation by Hierarchical Clustering (HC) seriation method and visualize the graph as a heatmap. Find the most pronounced cluster and comment whether this cluster was discovered in steps 1 or 3.
+
+```{r q1.4,echo=FALSE,warning=FALSE,message=FALSE}
+library(plotly)
+library(seriation)
+
+netm <- as.matrix(as_adjacency_matrix(network, attr = "weight", sparse = FALSE))
+
+colnames(netm) <- V(network)$label
+rownames(netm) <- V(network)$label
+
+rowdist<-dist(netm)
+
+order1<-seriate(rowdist, "HC")
+ord1<-get_order(order1)
+
+reordmatr<-netm[ord1,ord1]
+
+common_names_col <- colnames(reordmatr)
+
+common_names_row<-rownames(reordmatr)
+
+#z is the connection level (yellow strong connection)
+plot_ly(z=~reordmatr,
+        x=common_names_col, 
+        y=common_names_row, 
+        type="heatmap")
+```
+
+When the color scale goes to yellow it means stronger connection between nodes. On the top right side of the heatmap there is a brighter part with yellow and green colors that part show the most pronounced cluster.
+
+yellow colored parts also shows the connections with "Jamal Zougman" so this cluster in the step1 and step3 also. Jamal Zougman was found as the strong connected one in previous graphs also.
+
+## Assignment 2: Animations of time series data.
+
+The data file Oilcoal.csv provides time series about the consumption of oil (million tonnes) and coal (million tonnes oil equivalents) in China, India, Japan, US, Brazil, UK, Germany and France. Marker size shows how large a country is (1 for China and the US, 0.5 for all other countries).
+
+1) Visualize data in Plotly as an animated bubble chart of Coal versus Oil in which the bubble size corresponds to the country size. List several noteworthy features of the investigated animation.
+
+
+```{r q2,echo=FALSE,warning=FALSE,message=FALSE}
+data = read.csv2("Oilcoal.csv",header = TRUE)
+```
+
+
+```{r q2.1,echo=FALSE,warning=FALSE,message=FALSE}
+library(plotly)
+data %>% plot_ly(x = ~Oil, y = ~Coal, type = 'scatter',size = ~Marker.size,color=~Country, mode="markers", frame= ~Year)
+
+```
+
+- We see an exponential increase in the coal consumption for China with respect to the years. 
+- Oil consumption in USA has bene an outlier since the beginning i.e 1965 with extraordinary consumption compared to the rest of the countries. 
+
+Additionally the above 2 countries are the only ones with a marker size of 1 so this kind of trend can be due to their high population. 
+
+While the trend of the rest of the countries hover around a certain range for the oil and coal consumption. 
+
+2)  Find two countries that had similar motion patterns and create a motion chart including these countries only. Try to find historical facts that could explain some of the sudden changes in the animation behavior.
+
+```{r q2.2,echo=FALSE,warning=FALSE,message=FALSE}
+library(dplyr)
+
+data_1<-data %>%filter(Country =="US" | Country == "Japan")
+
+
+plot_ly(data_1, x=~Oil, y=~Coal,type = 'scatter',size = ~Marker.size,color=~Country, mode="markers", frame =~Year)%>%animation_opts(
+  100, easing = "cubic", redraw = F
+)
+
+```
+
+
+We see a drop in oil consumption during 1980-1984, which was due to the 1979 oil crisis which was cause due to the Iranian Revolution. This lead to the rise in oil prices, hence a reduction in consumption.
+
+And due to this factor, there was a push towards coal to reduce reliance on oil and we can see that in the plot that after 1984, the coal consumption rose. 
+
+We also see a drop in the consumption of oil between 2008-2009 for both countries which could be due to the financial crisis.  
+
+
+3) Compute a new column that shows the proportion of fuel consumption related to oil: oil/oil+coal * 100. One could think of visualizing the proportions oilp by means of animated bar charts; however smooth transitions between bars are not yet implemented in Plotly. Thus, use the following workaround:
+
+a. Create a new data frame that for each year and country contains two rows: one that shows oilp and another row contains 0 in oilp column
+b. make an animated line plot of oilp versus country where you group lines by country and make them thicker
+
+Perform an analysis of this animation. What are the advantages of visualizing data in this way compared to the animated bubble chart? What are the disadvantages?
+
+```{r q2.3,echo=FALSE,warning=FALSE,message=FALSE}
+data_2 <- data%>% mutate(Oil_prop = (Oil/(Oil + Coal)) * 100)
+data_3 <- data%>% mutate(Oil_prop = 0)
+
+data_4 <- rbind(data_2,data_3)
+
+data_4%>% plot_ly(x=~Country, y=~Oil_prop, frame =~Year,type = 'bar')%>%animation_opts(
+  100, easing = "cubic", redraw = F
+) %>% layout(showlegend = FALSE)
+```
+
+- We can see as the years have passed, the countries has started consuming more oil compared to coal. 
+- The oil proportion for Brazil has remaining consistent throughout the period. 
+- The highest change in oil proportion from 1965 to 2009 can be see in the France which started at 54.4% in 1965 and increased to 89.6%
+- Chain has steady has the lowest oil proportion among the other countries throughout this entire time period. 
+
+
+The advantage of the animated bar plot is that this plots helps to see easily compare different countries on the same scale while the bubble chart was a bit more difficult to compare due to the scale difference for the bigger countries i.e USA and China. The length of bars allows for easier visual quantification compared to the area of bubbles. Additionally, we are able to easily see whether countries are consuming more oil or coal as the year pass by which is harder to easily notice in the bubble chart. 
+
+
+The disadvantage of the animated bar plot is that we cannot incorporate more dimensions which we can for a bubble chart. Also, we are only able to see the change over time across one-axis. Additionally, the plot makes it harder to find outliers and can get cluttered as we add more countries making it harder to analyze. 
+
+4) Repeat the previous step but use “elastic” transition (easing). Which advantages and disadvantages can you see with this animation? Use information in https://easings.net/ to support your arguments.
+
+```{r q2.4,echo=FALSE,warning=FALSE,message=FALSE}
+
+data_2 <- data%>% mutate(Oil_prop = (Oil/(Oil + Coal)) * 100)
+data_3 <- data%>% mutate(Oil_prop = 0)
+
+data_4 <- rbind(data_2,data_3)
+
+data_4%>% plot_ly(x=~Country, y=~Oil_prop, frame =~Year,type = 'bar')%>%animation_opts(
+  100, easing = "elastic", redraw = F
+) %>% layout(showlegend = FALSE)
+
+```
+
+
+Advantage:
+With the help of elastic easing we are also able to see the speed of change of the oil proportion between each year which helps us see if the oil production sharply increases or decreases in relation to coal between 2 time points. And this fast transition helps draw immediate attention to the user. 
+
+Disadvantage: 
+This fast transition can make it difficult to the users making it harder to grasp subtle changes.It can also be overwhelming to the user to see such fast transition. It can also distract the user from the actual insights from the data and be too focused on the animation itself. 
+
+5) Use Plotly to create a guided 2D-tour visualizing Coal consumption in which the index function is given by Central Mass index and in which observations are years and variables are different countries. Find a projection with the most compact and well-separated clusters. Do clusters correspond to different Year ranges? Which variable has the largest contribution to this projection? How can this be interpreted? (Hint: make a time series plot for the Coal consumption of this country)
+
+```{r q2.5,echo=FALSE,warning=FALSE,message=FALSE}
+library(tidyr)
+library(tourr)
+
+
+reshaped_data <- data %>%
+  select(Country, Year, Coal) %>%
+  spread(key = Country, value = Coal) %>%
+  arrange(Year)
+
+rownames(reshaped_data) <- reshaped_data$Year
+mat <- as.matrix(reshaped_data[, -1])
+
+
+mat <- rescale(mat)
+set.seed(12345)
+tour<- new_tour(mat, guided_tour(cmass), NULL)
+
+steps <- c(0, rep(1/15, 200))
+Projs<-lapply(steps, function(step_size){  
+  step <- tour(step_size)
+  if(is.null(step)) {
+    .GlobalEnv$tour<- new_tour(mat, guided_tour(cmass), NULL)
+    step <- tour(step_size)
+  }
+  step
+}
+)
+
+
+tour_dat <- function(i) {
+  step <- Projs[[i]]
+  proj <- center(mat %*% step$proj)
+  data.frame(x = proj[,1], y = proj[,2], state = rownames(mat))
+}
+
+# projection of each variable's axis
+proj_dat <- function(i) {
+  step <- Projs[[i]]
+  data.frame(
+    x = step$proj[,1], y = step$proj[,2], variable = colnames(mat)
+  )
+}
+
+stepz <- cumsum(steps)
+
+# tidy version of tour data
+
+tour_dats <- lapply(1:length(steps), tour_dat)
+tour_datz <- Map(function(x, y) cbind(x, step = y), tour_dats, stepz)
+tour_dat <- dplyr::bind_rows(tour_datz)
+
+# tidy version of tour projection data
+proj_dats <- lapply(1:length(steps), proj_dat)
+proj_datz <- Map(function(x, y) cbind(x, step = y), proj_dats, stepz)
+proj_dat <- dplyr::bind_rows(proj_datz)
+
+ax <- list(
+  title = "", showticklabels = FALSE,
+  zeroline = FALSE, showgrid = FALSE,
+  range = c(-1.1, 1.1)
+)
+
+# for nicely formatted slider labels
+options(digits = 3)
+tour_dat <- highlight_key(tour_dat, ~state, group = "A")
+tour <- proj_dat %>%
+  plot_ly(x = ~x, y = ~y, frame = ~step, color = I("black")) %>%
+  add_segments(xend = 0, yend = 0, color = I("gray80")) %>%
+  add_text(text = ~variable) %>%
+  add_markers(data = tour_dat, text = ~state, ids = ~state, hoverinfo = "text") %>%
+  layout(xaxis = ax, yaxis = ax, showlegend = FALSE)#%>%animation_opts(frame=0, transition=0, redraw = F)
+tour
+
+```
+
+
+```{r q2.5.2,echo=FALSE,warning=FALSE,message=FALSE}
+a <- data %>%
+  select(Country, Year, Coal) %>%
+  spread(key = Country, value = Coal) %>%
+  arrange(Year)
+
+a <- a %>% select(Year, Brazil)
+
+ggplot(a, aes(Year, Brazil)) + geom_path(lineend = "butt",
+linejoin = "round", linemitre = 1) 
+```
+
+
+Yes, we are able to find 2 clusters and they do correspond to different year ranges. One cluster is from 1965 to mid 1980s and the other cluster is from min 1980s to 2009. 
+
+From the plot, we can see that Brazil has the biggest contribution to the projection. Based on the time-series plot for Brazil, we can see 2 distinct trends, one before mid 1980s and one after mid 1980s and this supports the clusters we found suggesting that impact that this variable has on creating the clusters. 
+
+
+# Appendix
+
+```{r ref-appendix, echo=FALSE, results='asis'}
+all_labels <- knitr::all_labels()
+for (label in all_labels) {  
+  if (label != "ref-appendix") {  # Skip the appendix chunk itself    
+    cat("### Chunk Label: ", label, "\n\n")    
+    cat("```r\n")    
+    code <- knitr::knit_code$get(label)    
+    cat(paste(code, collapse = "\n"))  
+    cat("\n```\n\n")  }}
+```
