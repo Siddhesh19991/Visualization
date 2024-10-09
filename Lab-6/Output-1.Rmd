@@ -1,0 +1,186 @@
+---
+title: "Lab-6"
+output: html_document
+date: "2024-10-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Assignment-1 
+# Q.1) 
+```{r}
+library(tidytext)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(wordcloud)
+library(RColorBrewer)
+
+
+text1<-read_lines("Five.txt")
+
+text2<-read_lines("OneTwo.txt")
+
+textFrame1=tibble(text=text1)%>%mutate(line = row_number())
+pal <- brewer.pal(6,"Dark2")
+
+textFrame2=tibble(text=text2)%>%mutate(line = row_number())
+
+
+tidy_frame1=textFrame1%>%unnest_tokens(word, text)%>%
+  anti_join(stop_words)%>%
+  count(word)%>%
+  with(wordcloud(word, n, max.words = 100, colors=pal, random.order=F))
+  
+title("5s texts")
+
+tidy_frame2=textFrame2%>%unnest_tokens(word, text)%>%
+  anti_join(stop_words)%>%
+  count(word)%>%
+  with(wordcloud(word, n, max.words = 100, colors=pal, random.order=F))
+  
+
+title("1-s2 texts")
+
+```
+The words that are commonly mentioned in both the worldclouds are "watch", "time" and "casio". 
+
+# Q.2) 
+
+```{r}
+tidy_frame3=textFrame2%>%unnest_tokens(word, text)%>%
+  mutate(line1=floor(line/10))%>%
+  count(line1,word, sort=TRUE)
+
+TFIDF=tidy_frame3%>%bind_tf_idf(word, line1, n)
+
+
+TFIDF<- TFIDF%>%group_by(word) %>% summarise(mean = mean(tf_idf))
+
+
+TFIDF%>%with(wordcloud(word, mean, max.words = 100, colors=pal, random.order=F))
+
+
+
+```
+
+TF-IDF helps reduce the weight of words that appear the most so that we can focus on the words that are truly distinctive in the text. A word with a high TF-IDF score might not be the most frequently occurring word, but it will be more relevant to the content and context. This helps in highlighting less common but more important terms. As a result of this, the word "watch" was not emphasized in this wordcloud. 
+
+# Q.3)
+```{r}
+library(plotly)
+
+#get_sentiments("afinn")
+
+tidy_frame4=textFrame1%>%unnest_tokens(word, text)%>%
+  left_join(get_sentiments("afinn"))%>%
+  mutate(line1=floor(line/5))%>%
+  group_by(line1, sort=TRUE)%>%
+  summarize(Sentiment=sum(value, na.rm = T))
+
+plot_ly(tidy_frame4, x=~line1, y=~Sentiment)%>%add_bars() %>% layout(title = '5s texts')
+
+
+tidy_frame5=textFrame2%>%unnest_tokens(word, text)%>%
+  left_join(get_sentiments("afinn"))%>%
+  mutate(line1=floor(line/5))%>%
+  group_by(line1, sort=TRUE)%>%
+  summarize(Sentiment=sum(value, na.rm = T))
+
+plot_ly(tidy_frame5, x=~line1, y=~Sentiment)%>%add_bars()  %>% layout(title = '1-2s texts')
+
+```
+
+
+Yes it does, a higher sentiment value means that there is summation of more positive response in that chunk while a lower or negative value means that there is a summation of more negative response in that chunk. As we can see from the 2 plots, the sentiment analysis does show a connection of the corresponding documents to the kinds of reviews we expect to see. The "5 texts" have a higher sentiment value on average compared to the "1-2s text".  
+
+
+
+# Q.4) 
+```{r}
+library(visNetwork)
+
+
+phraseNet=function(text, connectors){
+  textFrame=tibble(text=paste(text, collapse=" "))
+  tidy_frame3=textFrame%>%unnest_tokens(word, text, token="ngrams", n=3)
+  tidy_frame3
+  tidy_frame_sep=tidy_frame3%>%separate(word, c("word1", "word2", "word3"), sep=" ")
+  
+  #SELECT SEPARATION WORDS HERE: now "is"/"are"
+  tidy_frame_filtered=tidy_frame_sep%>%
+    filter(word2 %in% connectors)%>%
+    filter(!word1 %in% stop_words$word)%>%
+    filter(!word3 %in% stop_words$word)
+  tidy_frame_filtered
+  
+  edges=tidy_frame_filtered%>%count(word1,word3, sort = T)%>%
+    rename(from=word1, to=word3, width=n)%>%
+    mutate(arrows="to")
+  
+  right_words=edges%>%count(word=to, wt=width)
+  left_words=edges%>%count(word=from, wt=width)
+  
+  #Computing node sizes and in/out degrees, colors.
+  nodes=left_words%>%full_join(right_words, by="word")%>%
+    replace_na(list(n.x=0, n.y=0))%>%
+    mutate(n.total=n.x+n.y)%>%
+    mutate(n.out=n.x-n.y)%>%
+    mutate(id=word, color=brewer.pal(9, "Blues")[cut_interval(n.out,9)],  font.size=40)%>%
+    rename(label=word, value=n.total)
+  
+  #FILTERING edges with no further connections - can be commented
+  edges=edges%>%left_join(nodes, c("from"= "id"))%>%
+    left_join(nodes, c("to"="id"))%>%
+    filter(value.x>1|value.y>1)%>%select(from,to,width,arrows)
+  
+  nodes=nodes%>%filter(id %in% edges$from |id %in% edges$to )
+  
+  visNetwork(nodes,edges)
+  
+}
+
+
+phraseNet(text1, c("am", "is", "are", "was", "were"))
+phraseNet(text2, c("am", "is", "are", "was", "were"))
+```
+
+
+
+```{r}
+phraseNet(text1, c("at"))
+phraseNet(text2, c("at"))
+
+```
+
+# Q.5) 
+
+• Which properties of this watch are mentioned mostly often?
+Durable materials, huge, easy display and functions, readable at night. 
+
+
+• What are satisfied customers talking about?
+They think it is awesome, easy to use and they rate it highly. Additionally, it gives the exact time, durable and also the time is viewable at night. 
+
+• What are unsatisfied customers talking about?
+They found the watch to be defective and stuck, the alarm not working properly. Also they are unhappy with the display, where it sometimes even goes blank. 
+
+
+• What are properties of the watch mentioned by both groups?
+5s text: Durable materials, huge, easy display and functions, readable at night
+
+1-2s text: the alarm does not working properly, issue with the display, watch gets stuck, glows in the night
+
+
+• Can you understand watch characteristics (like size of display, features of the watches)
+by observing these graphs?
+Yes, the size of the watch is huge, the display and its functions are easy to use, the time is viweable at night plus it glows in the night, it is made of durable material so the watch is rough and tough. 
+
+
+
+
+
+
