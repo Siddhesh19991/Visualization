@@ -170,9 +170,9 @@ They found the watch to be defective and stuck, the alarm not working properly. 
 
 
 • What are properties of the watch mentioned by both groups?
-5s text: Durable materials, huge, easy display and functions, readable at night
 
-1-2s text: the alarm does not working properly, issue with the display, watch gets stuck, glows in the night
+The display and the view at night feature of the watch. 
+
 
 
 • Can you understand watch characteristics (like size of display, features of the watches)
