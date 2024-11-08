@@ -64,8 +64,8 @@ library(seriation)
 rowdist <- dist(data_scaled)
 coldist <- dist(t(data_scaled))
 
-order1 <- seriate(rowdist, method = "HC_complete")
-order2 <- seriate(coldist, method = "HC_complete")
+order1 <- seriate(rowdist, method = "OLO_complete")
+order2 <- seriate(coldist, method = "OLO_complete")
 ord1 <- get_order(order1)
 ord2 <- get_order(order2)
 
@@ -84,8 +84,8 @@ rowdist_2 <- as.dist(1-cor(t(data_scaled))) #tranpose here cause cor() finds the
 coldist_2 <- as.dist(1-cor(data_scaled))
 
 
-order1_cor <- seriate(rowdist_2, method = "HC_complete")
-order2_cor <- seriate(coldist_2, method = "HC_complete")
+order1_cor <- seriate(rowdist_2, method = "OLO_complete")
+order2_cor <- seriate(coldist_2, method = "OLO_complete")
 ord1_cor <- get_order(order1_cor)
 ord2_cor <- get_order(order2_cor)
 
@@ -163,13 +163,16 @@ And since we want to a lower gradient value, the lowest one is for TSP too.
 library(plotly)
 
 #plotly - can not see observation ID
-data=data
+data= data %>% mutate(cluster = dplyr::case_when(
+    iPhone.4S.hr. <= 50 ~ 1,     
+    Food.Costs... < 400  ~ 2,  
+    TRUE ~ 3      
+  ))
 
 
 p <- data %>%
   plot_ly(type = 'parcoords', 
-          line = list(color = ~ifelse(iPhone.4S.hr. <= 50, 1, 2),  # use numeric vals for color assignment
-                colorscale = list(c(1, 2), c('red', 'blue'))),
+          line = list(color = ~cluster),  # use numeric vals for color assignment
           
           dimensions = list(
             list(label = 'Food Costs', values = ~Food.Costs...),

@@ -1,0 +1,423 @@
+---
+title: "732A98 Group1 Lab6 Report"
+author: "Nazli Bilgic(nazbi056), Siddhesh Sreedor(sidsr770)"
+date: "`r Sys.Date()`"
+output: html_document
+header-includes:
+  - "\\usepackage{newunicodechar}"
+  - "\\newunicodechar{−}{-}"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Statement of Contribution
+
+Siddhesh Sreedor (sidsr770) was responsible for coding and writing analysis for assignment one.
+
+Nazli Bilgic (nazbi056) was responsible for coding and writing analysis for assignment two.
+
+We split the work and after completion we collaborated together to do and understand the other persons work.
+
+# Assignment-1  Text visualization of amazon reviews
+
+Q.1) Visualize word clouds corresponding to Five.txt and OneTwo.txt and make sure that stop words are removed. Which words are mentioned most often?
+
+```{r q1.1,echo=FALSE,warning=FALSE,message=FALSE}
+library(tidytext)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(wordcloud)
+library(RColorBrewer)
+
+
+text1<-read_lines("Five.txt")
+
+text2<-read_lines("OneTwo.txt")
+
+textFrame1=tibble(text=text1)%>%mutate(line = row_number())
+pal <- brewer.pal(6,"Dark2")
+
+textFrame2=tibble(text=text2)%>%mutate(line = row_number())
+
+
+tidy_frame1=textFrame1%>%unnest_tokens(word, text)%>%
+  anti_join(stop_words)%>%
+  count(word)%>%
+  with(wordcloud(word, n, max.words = 100, colors=pal, random.order=F))
+  
+title("5s texts")
+
+tidy_frame2=textFrame2%>%unnest_tokens(word, text)%>%
+  anti_join(stop_words)%>%
+  count(word)%>%
+  with(wordcloud(word, n, max.words = 100, colors=pal, random.order=F))
+  
+
+title("1-s2 texts")
+
+```
+The words that are commonly mentioned in both the worldclouds are "watch", "time" and "casio". 
+
+Q.2) Without filtering stop words, compute TF-IDF values for OneTwo.txt by aggregating each 10 lines into a separate “document”. Afterwards, compute mean TF-IDF values for each word over all documents and visualize them by the word cloud. Compare the plot with the corresponding plot from step 1. What do you think the reason is behind word “watch” being not emphasized in TF-IDF diagram while it is emphasized in the previous word clouds?
+
+```{r q1.2,echo=FALSE,warning=FALSE,message=FALSE}
+tidy_frame3=textFrame2%>%unnest_tokens(word, text)%>%
+  mutate(line1=floor(line/10))%>%
+  count(line1,word, sort=TRUE)
+
+TFIDF=tidy_frame3%>%bind_tf_idf(word, line1, n)
+
+
+TFIDF<- TFIDF%>%group_by(word) %>% summarise(mean = mean(tf_idf))
+
+
+TFIDF%>%with(wordcloud(word, mean, max.words = 100, colors=pal, random.order=F))
+
+
+
+```
+
+TF-IDF helps reduce the weight of words that appear the most so that we can focus on the words that are truly distinctive in the text. A word with a high TF-IDF score might not be the most frequently occurring word, but it will be more relevant to the content and context. This helps in highlighting less common but more important terms. As a result of this, the word "watch" was not emphasized in this wordcloud. 
+
+Q.3)Aggregate data in chunks of 5 lines and compute sentiment values (by using “afinn” database) for respective chunks in Five.txt and for OneTwo.txt . Produce plots visualizing aggregated sentiment values versus chunk index and make a comparative analysis between these plots. Does sentiment analysis show a connection of the corresponding documents to the kinds of reviews we expect to see in them?
+
+```{r q1.3,echo=FALSE,warning=FALSE,message=FALSE}
+library(plotly)
+
+#get_sentiments("afinn")
+
+tidy_frame4=textFrame1%>%unnest_tokens(word, text)%>%
+  left_join(get_sentiments("afinn"))%>%
+  mutate(line1=floor(line/5))%>%
+  group_by(line1, sort=TRUE)%>%
+  summarize(Sentiment=sum(value, na.rm = T))
+
+plot_ly(tidy_frame4, x=~line1, y=~Sentiment)%>%add_bars() %>% layout(title = '5s texts')
+
+
+tidy_frame5=textFrame2%>%unnest_tokens(word, text)%>%
+  left_join(get_sentiments("afinn"))%>%
+  mutate(line1=floor(line/5))%>%
+  group_by(line1, sort=TRUE)%>%
+  summarize(Sentiment=sum(value, na.rm = T))
+
+plot_ly(tidy_frame5, x=~line1, y=~Sentiment)%>%add_bars()  %>% layout(title = '1-2s texts')
+
+```
+
+
+Yes it does, a higher sentiment value means that there is summation of more positive response in that chunk while a lower or negative value means that there is a summation of more negative response in that chunk. As we can see from the 2 plots, the sentiment analysis does show a connection of the corresponding documents to the kinds of reviews we expect to see. The "5 texts" have a higher sentiment value on average compared to the "1-2s text".  
+
+
+
+Q.4) Create the phrase nets for Five.Txt and One.Txt with connector words
+• am, is, are, was, were • at
+When you find an interesting connection between some words, use Word Trees
+https://www.jasondavies.com/wordtree/ to understand the context better. Note that this link might not work properly in Microsoft Edge (if you are using Windows 10) so use other browsers.
+
+
+```{r q1.4,echo=FALSE,warning=FALSE,message=FALSE}
+library(visNetwork)
+
+
+phraseNet=function(text, connectors){
+  textFrame=tibble(text=paste(text, collapse=" "))
+  tidy_frame3=textFrame%>%unnest_tokens(word, text, token="ngrams", n=3)
+  tidy_frame3
+  tidy_frame_sep=tidy_frame3%>%separate(word, c("word1", "word2", "word3"), sep=" ")
+  
+  #SELECT SEPARATION WORDS HERE: now "is"/"are"
+  tidy_frame_filtered=tidy_frame_sep%>%
+    filter(word2 %in% connectors)%>%
+    filter(!word1 %in% stop_words$word)%>%
+    filter(!word3 %in% stop_words$word)
+  tidy_frame_filtered
+  
+  edges=tidy_frame_filtered%>%count(word1,word3, sort = T)%>%
+    rename(from=word1, to=word3, width=n)%>%
+    mutate(arrows="to")
+  
+  right_words=edges%>%count(word=to, wt=width)
+  left_words=edges%>%count(word=from, wt=width)
+  
+  #Computing node sizes and in/out degrees, colors.
+  nodes=left_words%>%full_join(right_words, by="word")%>%
+    replace_na(list(n.x=0, n.y=0))%>%
+    mutate(n.total=n.x+n.y)%>%
+    mutate(n.out=n.x-n.y)%>%
+    mutate(id=word, color=brewer.pal(9, "Blues")[cut_interval(n.out,9)],  font.size=40)%>%
+    rename(label=word, value=n.total)
+  
+  #FILTERING edges with no further connections - can be commented
+  edges=edges%>%left_join(nodes, c("from"= "id"))%>%
+    left_join(nodes, c("to"="id"))%>%
+    filter(value.x>1|value.y>1)%>%select(from,to,width,arrows)
+  
+  nodes=nodes%>%filter(id %in% edges$from |id %in% edges$to )
+  
+  visNetwork(nodes,edges)
+  
+}
+
+phraseNet(text1, c("am", "is", "are", "was", "were"))
+phraseNet(text2, c("am", "is", "are", "was", "were"))
+```
+
+
+
+```{r q1.4.2,echo=FALSE,warning=FALSE,message=FALSE}
+phraseNet(text1, c("at"))
+phraseNet(text2, c("at"))
+
+```
+
+Q.5) Based on the graphs obtained in step 4, comment on the most interesting findings, like:
+
+• Which properties of this watch are mentioned mostly often?
+
+• What are satisfied customers talking about?
+
+• What are unsatisfied customers talking about?
+
+• What are properties of the watch mentioned by both groups?
+
+• Can you understand watch characteristics (like size of display, features of the watches)
+by observing these graphs?
+
+• Which properties of this watch are mentioned mostly often?
+Durable materials, huge, easy display and functions, readable at night. 
+
+
+• What are satisfied customers talking about?
+They think it is awesome, easy to use and they rate it highly. Additionally, it gives the exact time, durable and also the time is viewable at night. 
+
+• What are unsatisfied customers talking about?
+They found the watch to be defective and stuck, the alarm not working properly. Also they are unhappy with the display, where it sometimes even goes blank. 
+
+
+• What are properties of the watch mentioned by both groups?
+
+The display and the view at night feature of the watch. 
+
+
+• Can you understand watch characteristics (like size of display, features of the watches)
+by observing these graphs?
+Yes, the size of the watch is huge, the display and its functions are easy to use, the time is viweable at night plus it glows in the night, it is made of durable material so the watch is rough and tough. 
+
+
+# Assignment 2: Interactive Analysis of italian olive oils
+
+1) Create an interactive scatter plot of the eicosenoic against linoleic. You have probably found a group of observations having unusually low values of eicosenoic. Hover on these observations to find out the exact values of eicosenoic for these observations.
+
+When we hover over the low points that are in the lower part of the scatter plot, points have values 1,2,3 for the eicosenoic variable. Example: (Eicosenoic:2,Linoleic:850)
+
+
+```{r q2.1,echo=FALSE,warning=FALSE,message=FALSE}
+library(plotly)
+library(crosstalk)
+library(tidyr)
+
+data_olive<-read.csv("olive.csv")
+
+d <- SharedData$new(data_olive)
+
+scatter_olive <- plot_ly(d, x = ~linoleic, y = ~eicosenoic,
+  text=~paste("eicosenoic:", eicosenoic, "<br>linoleic:", linoleic),
+  hoverinfo = "text") %>% 
+  add_markers(color = I("black"))%>%
+  layout(xaxis = list(title = "linoleic"),
+         yaxis = list(title = "eicosenoic"))
+
+scatter_olive%>%
+  highlight(on="plotly_selected", dynamic=T, persistent = T, opacityDim = I(1))%>%hide_legend()
+```
+
+2) Link the scatterplot of (eicosenoic, linoleic) to a bar chart showing Region and a slider that allows to filter the data by the values of stearic. Use persistent brushing to identify the regions that correspond unusually low values of eicosenoic. Use the slider and describe what additional relationships in the data can be found by using it. Report which interaction operators were used in this step.
+
+With using the persistent brushing we selected North as red, South as blue and SardiniaIsland as purple. On the scatter plot we can see that, lower eicosenoic values are from South and Sardania Island regions.
+
+When strearic slider is 152-226 selected(stearic value); on the scatter plot we can see that points are more gathered between linoleic values 1000-1250 and eicosenoic values 10-30 for north and south regions.  Total North has around 170 samples and South has the lowest sample number. 
+
+When streatic slider is 258-375 selected; on the scatter plot we can see that points are less between linoneic values 1000-1250 for North, south and sardania regions. 
+
+Points are more gathered between 600-850 linoleic values for south region. Bar chart shows for these values South has less number of samples for olive oil and North has the most samples.
+
+Also when we choose slider value 308-375, we only have points from region south and sardania island on the scatter plot. So points from south decreases when the slider value increase(stearic value increase) through 375.
+
+```{r q2.2, echo=FALSE,warning=FALSE,message=FALSE}
+region_labels <- factor(data_olive$Region, 
+                        levels = c(1, 2, 3), 
+                        labels = c("North", "South", "Sardinia Island"))
+
+bar_olive <-plot_ly(d, x=~region_labels)%>%add_histogram()%>%layout(barmode="overlay")
+
+bscols(widths=c(2, NA),filter_slider("ST", "stearic", d, ~stearic)
+       ,subplot(scatter_olive,bar_olive)%>%
+         highlight(on="plotly_selected", dynamic=T, persistent = T, opacityDim = I(1))%>%hide_legend())
+```
+
+3) Create linked scatter plots eicosenoic against linoleic and arachidic against linolenic. Which outliers in (arachidic, linolenic) are also outliers in (eicosenoic, linoleic)? Are outliers grouped in some way? Use brushing to demonstrate your findings.
+
+
+According to the calculations of the outliers for the linolenic-arachidic scatter plot we used brushing to analyze if these points are also outliers on the other scatter plot.
+
+Outliers are grouped in lower values of arachidic values for the linoleic-arachidic scatter plot. Outliers with lower arachidic values are also grouped together in the lower part of the eicosenoic-linoleic scatter plot. 
+
+There are also some outliers with high Linoleic values with arachidic values around 101. With the brushing we colored them and on the eicosenoic-linoleic scatter plot they are in the cluster which has high intensity of points. So they are not outliers in this scatter plot.
+
+```{r q2.3,echo=FALSE,warning=FALSE,message=FALSE}
+scatter_olive2 <- plot_ly(d, x = ~linoleic, y = ~eicosenoic,
+                         text=~paste("eicosenoic:", eicosenoic, "<br>linoleic:", linoleic),
+                         hoverinfo = "text") %>%
+  add_markers(color = I("black")) %>%
+  layout(xaxis = list(title = "linoleic"),
+         yaxis = list(title = "eicosenoic"))
+
+scatter_olive3 <- plot_ly(d, x = ~linolenic, y = ~arachidic,
+                          text=~paste("arachidic:", arachidic, "<br>linolenic:", linoleic),
+                          hoverinfo = "text") %>%
+  add_markers(color = I("black"))
+
+subplot(scatter_olive2, scatter_olive3) %>%
+  highlight(on="plotly_selected", dynamic=T, persistent=T, opacityDim = I(1)) %>%
+  hide_legend()
+
+#outliers for the arahidic-linolenic scatter plot
+Q1 <- quantile(data_olive$arachidic, 0.25)
+Q3 <- quantile(data_olive$arachidic, 0.75)
+iqr <- Q3 - Q1
+
+lower_bound <- Q1 - 1.5 * iqr
+upper_bound <- Q3 + 1.5 * iqr
+
+data_olive$outlier_arachidic <- ifelse(data_olive$arachidic < lower_bound | data_olive$arachidic > upper_bound, "outlier", "notOutlier")
+
+outliers <- data_olive[data_olive$outlier_arachidic == "outlier", c("linoleic", "arachidic")]
+
+print("outliers-linoleic, arachidic:")
+print(outliers)
+```
+
+4) Create a parallel coordinate plot for the available eight acids, a linked 3d-scatter plot in which variables are selected by three additional drop boxes and a linked bar chart showing Regions. Use persistent brushing to mark each region by a different color Observe the parallel coordinate plot and state which three variables (let’s call them influential variables) seem to be mostly reasonable to pick up if one wants to differentiate between the regions. Does the parallel coordinate plot demonstrate that there are clusters among the observations that belong to the same Region? Select the three influential variables in the drop boxes and observe in the 3d-plot whether each Region corresponds to one cluster.
+
+According to the parallel coordinate plot; oleic, linoleic and arachidic are the influential variables that we choose. For these variables we can see the clustering more clearly.
+
+yes the parallel coordinate plot demonstrate that there are clusters among the observations that belong to the same region. There are distinct color groupings along the axes and have similar pattern especially for selected influential variables.
+
+When we select purple for region-3, green for region-2 and red for region-1. Also,
+select the three influential variables oleic, linoleic and arachidic from the dropboxes of 3d-plot; 
+we can see each region has a point concentration on the graph this concentration is more obvious for region-1 and region-2.
+But for region-3 some points spread to the red cluster on the 3d-plot so we can not say these regions are identified very well.
+
+```{r q2.4,echo=FALSE,warning=FALSE,message=FALSE}
+library(plotly)
+library(GGally)
+library(crosstalk)
+library(dplyr)
+library(htmltools)
+
+# parallel-coordinate plot
+p <- ggparcoord(data_olive, columns = c(4:11), groupColumn = "Region")
+d <- ggplotly(p)
+d_data <- plotly_data(d) %>% group_by(.ID)
+d1 <- SharedData$new(d_data, ~.ID, group = "acids")
+
+
+p1 <- plot_ly(d1, x = ~variable, y = ~value) %>%
+  add_lines(line = list(width = 0.3)) %>%
+  add_markers(marker = list(size = 0.3), text = ~.ID, hoverinfo = "text")
+
+
+data_olive2 <- data_olive
+data_olive2$.ID <- 1:nrow(data_olive)
+d2 <- SharedData$new(data_olive2, ~.ID, group = "acids")
+
+# bar plot
+p2 <- plot_ly(d2, x = ~factor(Region)) %>%
+  add_histogram() %>%
+  layout(barmode = "overlay", title = "region distrbtion")
+
+
+acids_selected <- data_olive[, 4:11]
+acids_selected$.ID <- 1:nrow(acids_selected)
+d3 <- SharedData$new(acids_selected, ~.ID, group = "acids")
+
+# create the buttons
+ButtonsX <- list()
+for (i in 1:8) {  
+  ButtonsX[[i]] = list(
+    method = "restyle",
+    args = list("x", list(acids_selected[[i]])),
+    label = colnames(acids_selected)[i]
+  )
+}
+
+ButtonsY <- list()
+for (i in 1:8) {
+  ButtonsY[[i]] = list(
+    method = "restyle",
+    args = list("y", list(acids_selected[[i]])),
+    label = colnames(acids_selected)[i]
+  )
+}
+
+
+ButtonsZ <- list()
+for (i in 1:8) {
+  ButtonsZ[[i]] = list(
+    method = "restyle",
+    args = list("z", list(acids_selected[[i]])), 
+    label = colnames(acids_selected)[i]
+  )
+}
+#3d plot
+p3 <- plot_ly(d3, x = ~linoleic, y = ~eicosenoic, z = ~arachidic, alpha = 0.8) %>%
+  add_markers() %>%
+  layout(scene=list(xaxis=list(title=""),
+                    yaxis=list(title=""),
+                    zaxis=list(title="")
+  ),
+  title = "select variable for the plot:",
+  updatemenus = list(
+    list(y=0.9, buttons = ButtonsX),
+    list(y=0.8, buttons = ButtonsY),
+    list(y=0.7, buttons = ButtonsZ)
+  )  )
+
+# link plots
+ps <- htmltools::tagList(
+  p1 %>% highlight(on = "plotly_selected", dynamic = T, persistent = T, opacityDim = I(1)) %>% hide_legend(),
+  p2 %>% highlight(on = "plotly_selected", dynamic = T, persistent = T, opacityDim = I(1)) %>% hide_legend(),
+  p3 %>% highlight(on = "plotly_selected", dynamic = T, persistent = T, opacityDim = I(1)) %>% hide_legend()
+)
+
+htmltools::browsable(ps)
+
+```
+
+5) Think about which interaction operators are available in step 4 and what interaction operands they are be applied to. Which additional interaction operators can be added to the visualization in step 4 to make it even more efficient/flexible? Based on the analysis in the previous steps, try to suggest a strategy (or, maybe, several strategies) that would use information about the level of acids to discover which regions different oils comes from.
+
+For this assignment in step4; brushing, highlighting, lnking between different plots, selection from dropdown(3d plot) are used. 
+
+We could use range selection slider as addition. By using a slider can help the user to focus on specific ranges to analyze olive acid variables, region clusters. Using slider with influential variables on parallel coordinate plot to filter oils by specific acid level values.
+we can identify oils from the same region and make comments about the intensity of clusters according to the range chosen from the slider. 
+we will have more chance to analyze in detail; isolate oils with similar profiles and predict their region.
+
+Also, finding and marking the outliers with highlighting and brushing will improve our comments about the clusters. 
+We can additionally comment if these outliers have things in common for specific regions and expand our analysis.
+
+# Appendix
+
+```{r ref-appendix, echo=FALSE, results='asis'}
+all_labels <- knitr::all_labels()
+for (label in all_labels) {  
+  if (label != "ref-appendix") {  # Skip the appendix chunk itself    
+    cat("### Chunk Label: ", label, "\n\n")    
+    cat("```r\n")    
+    code <- knitr::knit_code$get(label)    
+    cat(paste(code, collapse = "\n"))  
+    cat("\n```\n\n")  }}
+```

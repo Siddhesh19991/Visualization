@@ -1,0 +1,316 @@
+---
+title: "732A98 Visualization Lab2"
+author: "Nazli Bilgic (nazbi056), Siddhesh Sreedar (sidsr770)"
+date: "`r Sys.Date()`"
+output: html_document
+header-includes:
+  - "\\usepackage{newunicodechar}"
+  - "\\newunicodechar{−}{-}"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Statement of Contribution
+
+Siddhesh Sreedor (sidsr770) was responsible for coding and writing analysis for assignment one.
+
+Nazli Bilgic (nazbi056) was responsible for coding and writing analysis for assignment two.
+
+We split the work and after completion we collaborated together to do and understand the other persons work.
+
+## Assignment-1
+
+```{r echo=FALSE}
+data = read.csv("olive.csv",header = TRUE)
+```
+
+Q.1) 
+
+Create a scatterplot in Ggplot2 that shows dependence of Palmitic on Oleic in which observations are colored by Linoleic. Create also a similar scatter plot in which you divide Linoleic variable into fours classes (use cut_interval() ) and map the discretized variable to color instead. How easy/difficult is it to analyze each of these plots? What kind of perception problem is demonstrated by this experiment?
+
+```{r q1.1, echo=FALSE,warning=FALSE,message=FALSE}
+#q.1)
+
+library(ggplot2)
+plot_1<- ggplot(data, aes(x = palmitic, y = oleic, color = linoleic)) + geom_point() + labs(title = "plot-1")
+                  
+plot_1
+```
+
+```{r q1.1.2, echo=FALSE,warning=FALSE,message=FALSE}
+plot_2<- ggplot(data, aes(x = palmitic, y = oleic, color = cut_interval(linoleic, n = 4))) + geom_point() + labs(color = "Linoleic interval ", title = "plot-2") 
+
+plot_2
+```
+
+We see that plot2 is way easier to analyze compared to the first plot. Plot-1 is harder to analyze due to the variation in the opacity of the same color for attribute "Linoleic" making it relativity difficult to easily gain insights. When the same color is used with different levels of transparency, it becomes challenging for viewers to distinguish between different values.
+
+While in plot-2, we have converted the "Linoleic" attribute into a discrete variable allowing for different colors for different intervals which helps to visually segregate them and thus easier to analyze the plot and gain insights. 
+
+Q.2) 
+
+Create scatterplots of Palmitic vs Oleic in which you map the discretized Linoleic with four classes to:
+
+a) Color
+
+b) Size
+
+c) Orientation angle(use geom_spoke())
+
+State in which plots it is more difficult to differentiate between the categories and connect your findings to perception metrics (i.e. how many bits can be decoded by a specific aesthetics)
+
+a)
+
+```{r q1.2,echo=FALSE,warning=FALSE,message=FALSE}
+#q.2)
+#a)
+plot_2<- ggplot(data, aes(x = palmitic, y = oleic, color = cut_interval(linoleic, n = 4))) + geom_point() + labs(color = "Linoleic interval ", title = "plot-2") 
+
+plot_2
+```
+
+
+b)
+
+```{r q1.2.1, echo=FALSE,warning=FALSE,message=FALSE}
+#b)
+plot_3<- ggplot(data, aes(x = palmitic, y = oleic, size = cut_interval(linoleic, n = 4))) + geom_point() + labs(size = "Linoleic interval ", title = "plot-3") 
+
+plot_3
+```
+
+c)
+
+```{r q1.2.3, echo=FALSE,warning=FALSE,message=FALSE}
+#c)
+data$linoleic_discrete <- cut_interval(data$linoleic, n = 4)
+
+plot_4<- ggplot(data, aes(x = palmitic, y = oleic)) + geom_point() + geom_spoke(aes(angle = as.numeric(linoleic_discrete) *pi/2, radius = 100))+ labs( title = "plot-4") 
+
+plot_4
+
+```
+
+Based on the plots mapped by Color, Size and Orientation angle,the orientation angle i.e plot-4 is the most difficult to differentiate between the categories. 
+
+Levels = 2 ^ bits 
+
+For color, we are encoding 2 bit of information which is 4 levels and we have 4 colors to differentiate them. And having 2 bit of information is said a good value based on the standard which is 4-5 levels (2.2 bits)
+
+For size, we are encoding 2 bit of information which is 4 levels and we have 4 sizes to differentiate them. And having 2 bit of information is said a good value based on the standard which is 10 levels (3.1 bits). 
+
+
+For orientation, we are encoding 2 bit of information which is a good value based on the standard for the line length and line orientation which is 2.8 and 3 respectively but it is still hard to easily distinguish the categories compared to color and size. 
+
+Q.3) 
+
+Create a scatterplot of Oleic vs Eicosenoic in which color is defined by numeric values of Region. What is wrong with such a plot? Now create a similar kind of plot in which Region is a categorical variable. How quickly can you identify decision boundaries? Does preattentive or attentive mechanism make it possible?
+```{r q1.3, echo=FALSE,warning=FALSE,message=FALSE}
+#q.3)
+
+plot_5<- ggplot(data, aes(x = oleic, y = eicosenoic, color = Region)) + geom_point() + labs(color = "Linoleic interval ", title = "plot-5") 
+
+plot_5
+
+```
+
+Such kind of plot can incorrectly define the categorical nature of the variable and thus be misleading.
+
+
+```{r q1.3.1,echo=FALSE,warning=FALSE,message=FALSE}
+plot_6<- ggplot(data, aes(x = oleic, y = eicosenoic, color = factor(Region))) + geom_point() + labs(color = "Linoleic interval ", title = "plot-6") 
+
+plot_6
+
+```
+The decision boundaries can be easily and immediately be identified. 
+
+Preattentive mechanism makes it possible since boundary between two groups of elements with the same visual feature is detected preattentively
+
+
+Q.4) 
+
+Create a scatterplot of Oleic vs Eicosenoic in which color is defined by a discretized Linoleic (3 classes), shape is defined by a discretized Palmitic (3 classes) and size is defined by a discretized Palmitoleic (3 classes). How difficult is it to differentiate between 27=3*3*3 different types of observations? What kind of perception problem is demonstrated by this graph?
+```{r q1.4, echo=FALSE,warning=FALSE,message=FALSE}
+#q.4)
+
+plot_7<- ggplot(data, aes(x = oleic, y = eicosenoic, color = cut_interval(linoleic, n = 3), shape = cut_interval(palmitic, n = 3), size = cut_interval(palmitoleic, n = 3))) + geom_point() + labs(color = "Linoleic interval ", title = "plot-7", size = "palmitoleic interval", shape = "palmitic interval") 
+
+plot_7
+
+```
+
+Due to overload of information and different legend values as shown in the above plot, it makes it difficult to differentiate between the observations.
+
+The perception problem is visual overload as we are overwhelming the user will different shape, size and color making it difficult to truly understand the plot with ease. 
+
+Q.5) 
+
+Create a scatterplot of Oleic vs Eicosenoic in which color is defined by Region, shape is defined by a discretized Palmitic (3 classes) and size is defined by a discretized Palmitoleic (3 classes). Why is it possible to clearly see a decision boundary between Regions despite many aesthetics are used? Explain this phenomenon from the perspective of Treisman’s theory.
+```{r q1.5, echo=FALSE,warning=FALSE,message=FALSE}
+#q.5)
+
+plot_8<- ggplot(data, aes(x = oleic, y = eicosenoic, color = factor(Region), shape = cut_interval(palmitic, n = 3), size = cut_interval(palmitoleic, n = 3))) + geom_point() + labs(color = "Linoleic interval ", title = "plot-8", size = "palmitoleic interval", shape = "palmitic interval") 
+
+plot_8
+
+```
+
+This is because a figure is processed in parallel by checking individual feature maps. So we can visually notice differences preattentively for the basic visual features so we can easily differentiate by color. 
+
+But then to distinguish between a combination of visual features (red + square object) will take longer due to serial search. 
+
+Q.6) 
+
+Use Plotly to create a pie chart that shows the proportions of oils coming from different Areas. Hide labels in this plot and keep only hover-on labels. Which problem is demonstrated by this graph?
+```{r q1.6, echo=FALSE,warning=FALSE,message=FALSE}
+#q.6)
+
+library(plotly)
+library(dplyr)
+var <- data %>% select(Area) %>% group_by(Area) %>% count() %>% mutate(Proportion = n / 572)
+var <- as.data.frame(var)
+
+var %>% plot_ly(labels = ~Area, values = ~Proportion, type = "pie", textinfo = 'none', hoverinfo = 'label+percent') %>% layout(showlegend = FALSE, title = 'proportions of oils from different areas')
+```
+
+
+Just by looking at the pie chart, it is hard to understand what area and percentage does each portion of the pie correspond to. We would need to hover over each part of the pie to identify the area and its percentage making it also hard to compare different portions of the pie.  
+
+Q.7) 
+
+Create a 2d-density contour plot with Ggplot2 in which you show dependence of Linoleic vs Eicosenoic. Compare the graph to the scatterplot using the same variables and comment why this contour plot can be misleading.
+```{r q1.7,echo=FALSE,warning=FALSE,message=FALSE}
+#q.7)
+
+ggplot(data, aes(x = linoleic, y = eicosenoic)) + geom_density_2d() + labs (title="Plot-9")
+
+
+ggplot(data, aes(x = linoleic, y = eicosenoic)) + geom_point() + labs (title="Plot-10")
+
+```
+
+This is because while in the scatter plot we are able to see each data point so get more detail and clarity, the contour plot just shows the area of high and low concentration. And the contour plot provides less detail and just an abstraction which can also be misleading sometimes if for example the amount of data points that we have is less. 
+
+
+## Assignment 2 Multidimensional scaling of a high-dimensional dataset
+
+1) Load the file to R and answer whether it is reasonable to scale these data in order to perform a multidimensional scaling (MDS).
+
+Scaling the data is reasonable. BAvg and OBP values range from 0.2 to 0.3, while AB values are in the thousands. Since the variables are on different scales, we will scale the data before
+applying MDS to prevent variables with large values from disproportionately impacting the distance calculations.
+
+```{r q2.1,echo=FALSE,warning=FALSE,message=FALSE}
+library(readxl)
+
+baseball_data <- read_excel("baseball-2016.xlsx")
+```
+
+2) Write an R code that performs a non-metric MDS with Minkowski distance=2 of the data (numerical columns) into two dimensions. Visualize the resulting observations in Plotly as a scatter plot in which observations are colored by League. Does it seem to exist a difference between the leagues according to the plot? Which of the MDS components seem to provide the best differentiation between the Leagues? Which baseball teams seem to be outliers?
+
+There is no clear decision boundary visible in the scatter plot. From the y-axis(V2) we can see better differentiation of the 'AL' and 'NL' leagues. In general, AL teams are more clustered around positive y-values and NL teams are more clustered around negative y-values. 
+
+'Boston Red Sox' is a outlier we can see that it is away (lower x value than other points) from the other points. 
+
+```{r q2.2,warning=FALSE,echo=FALSE,message=FALSE}
+library(plotly)
+library(MASS)
+
+
+baseball_numeric_data<-baseball_data[,3:27]
+scaled_baseball_data = scale(baseball_numeric_data)
+
+d=dist(scaled_baseball_data,method = "minkowski",p=2)
+coord=isoMDS(d,k=2)
+mds_coord=as.data.frame(coord$points)
+mds_coord$name=rownames(mds_coord)
+mds_coord$League = baseball_data$League
+mds_coord$Team=baseball_data$Team
+
+plot_ly(mds_coord, x=~V1, y=~V2, type="scatter", mode = "markers", color=~League,hovertext=~Team,
+        colors = c("AL" = "red", "NL" = "blue"))
+```
+
+3) Use Plotly to create a Shepard plot for the MDS performed and comment about how successful the MDS was. Which observation pairs were hard for the MDS to map successfully?
+
+For Shepard plots, if all the scatter points follow a monotonic curve, we can conclude that the MDS provides a reasonably good fit. In this plot we can see that most of the points fallow the monotanic curve but there are some points which don't. These separate points show the dissimilarities between these points are not captured good by the MDS. Overall because most of the points fallow the line we can comment that Shepard plot shows a good fit.
+
+examples for observation pairs which were hard to map: obj1:Minnesota Twins, Obj2: Aizona Diamondbacks,
+Obj1:NY Mets, Obj2:Minnesota twins, obj1:minnesota twins,obj2:colorado rockies. 
+
+```{r q2.3,warning=FALSE,echo=FALSE,message=FALSE}
+sh <- Shepard(d, coord$points) #observed and fitted distance data
+delta <-as.numeric(d) #observed distance
+fitted_distance<- as.numeric(dist(coord$points)) #fitted distance from MDS coordinates 'D'
+
+n=nrow(coord$points) #total number of observations
+index=matrix(1:n, nrow=n, ncol=n)
+
+index1=as.numeric(index[lower.tri(index)])
+index2=as.numeric(t(index)[lower.tri(t(index))])
+
+
+plot_ly()%>%
+  add_markers(x=~delta, y=~fitted_distance, hoverinfo = 'text',
+              text = ~paste('Obj1: ', baseball_data$Team[index1],
+                            '<br> Obj 2: ', baseball_data$Team[index2]))%>%
+  #if nonmetric MDS inolved
+  add_lines(x=~sh$x, y=~sh$yf)
+```
+
+4) Produce series of scatterplots in which you plot the MDS variable that was the best in the differentiation between the leagues in step 2 against all other numerical variables of the data. Pick up two scatterplots that seem to show the strongest (positive or negative) connection between the variables and include them into your report. Find some information about these variables in Google do they appear to be important in scoring the baseball teams? Provide some interpretation for the chosen MDS variable.
+
+```{r q2.4,warning=FALSE,echo=FALSE,message=FALSE}
+variables <- colnames(baseball_numeric_data)
+plots <- list()
+
+#v2 best variable of MDS
+for (i in variables) {
+  plot <- plot_ly(
+    x = mds_coord[["V2"]],
+    y = baseball_numeric_data[[i]],
+    type = "scatter",
+    mode = "markers",
+    color = mds_coord$League,
+    hovertext = mds_coord$Team,
+    colors = c("AL" = "red", "NL" = "blue")
+  ) %>%
+    layout(
+      title = paste("V2", "-",i ),
+      xaxis = list(title = "V2"),
+      yaxis = list(title = i)
+      
+    )
+  
+  plots[[i]] <- plot
+}
+#plots
+
+plots$SH
+plots$HR
+```
+
+Sacrifice Hits(SH)-v2 plot; when V2 increases SH decreases. We can see a decreasing trend. 
+NL points are clustered upper left and AL points are gathered more around SH(10 to 40 values) and V2(-2 to 4). NL teams have higher SH values this can show that these teams are more focused on strategical playing.
+
+Sacrifice hit happens when the ball purposely bunts softly. It doesn't affect scoring directly but by changing the places of the players it can help to score. V2 can be indicator for more strategical abilities of the teams here.
+  
+Home Runs (HR)-v2 plot: when V2 increases HR also increases. There is a increase trend. 
+Home run is one of the best ways to score in baseball because it gives the teams at least one run and can bring more. V2 can be hitting performance of the teams. Teams in league-AL are more spread for higher HR values this can be related to the hitting performance of AL teams. 
+
+
+# Appendix
+
+```{r ref-appendix, echo=FALSE, results='asis'}
+all_labels <- knitr::all_labels()
+  for (label in all_labels) {  
+    if (label != "ref-appendix") {  # Skip the appendix chunk itself    
+      cat("### Chunk Label: ", label, "\n\n")    
+      cat("```r\n")    
+      code <- knitr::knit_code$get(label)    
+      cat(paste(code, collapse = "\n"))  
+      cat("\n```\n\n")  }}
+```

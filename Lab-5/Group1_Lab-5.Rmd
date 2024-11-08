@@ -78,7 +78,7 @@ colnames(links_data)[3] <- "weight"
 rownames(links_data) <- NULL
 
 
-network <- graph_from_data_frame(d = links_data, vertices = nodes_data, directed = F)
+network <- graph_from_data_frame(d = links_data, vertices = nodes_data, directed = FALSE)
 
 nodes_data$value <- strength(network) #size of the node
 
